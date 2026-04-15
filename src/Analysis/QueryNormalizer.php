@@ -22,9 +22,11 @@ class QueryNormalizer
     {
         $normalized = $sql;
 
-        // Replace quoted string literals ('...' or "...")
+        // Replace single-quoted string literals ('...')
+        // Do NOT replace double-quoted identifiers ("..."") — in PostgreSQL these
+        // are table/column names, not values. Replacing them would collapse
+        // structurally different queries into the same hash.
         $normalized = preg_replace("/'(?:[^'\\\\]|\\\\.)*'/", "'?'", $normalized) ?? $normalized;
-        $normalized = preg_replace('/"(?:[^"\\\\]|\\\\.)*"/', '"?"', $normalized) ?? $normalized;
 
         // Replace numeric literals (integers and floats) that are not part of identifiers
         $normalized = preg_replace('/\b\d+(?:\.\d+)?\b/', '?', $normalized) ?? $normalized;

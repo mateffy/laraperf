@@ -106,21 +106,34 @@ class PerfStore
     /** Return the most recently modified completed session, or null. */
     public function latestSession(): ?array
     {
-        $files = collect(File::glob($this->base_path.'/*.json'))
-            ->filter(fn (string $f) => ! str_contains($f, '.tmp.'))
-            ->sortByDesc(fn (string $f) => File::lastModified($f))
-            ->values();
+        $sessions = [];
 
-        foreach ($files as $file) {
+        foreach (File::glob($this->base_path.'/*.json') as $file) {
+            if (str_contains($file, '.tmp.')) {
+                continue;
+            }
+
             $id = basename($file, '.json');
             $session = $this->readSession($id);
 
             if ($session && $session['status'] === 'completed') {
-                return $session;
+                $sessions[] = $session;
             }
         }
 
-        return null;
+        if (empty($sessions)) {
+            return null;
+        }
+
+        usort($sessions, function (array $a, array $b) {
+            $a_time = $a['finished_at'] ?? $a['updated_at'] ?? $a['started_at'] ?? '';
+            $b_time = $b['finished_at'] ?? $b['updated_at'] ?? $b['started_at'] ?? '';
+
+            return $b_time <=> $a_time
+                ?: $b['session_id'] <=> $a['session_id'];
+        });
+
+        return $sessions[0];
     }
 
     /** Return any active session (running watcher), or null. */

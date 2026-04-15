@@ -1,10 +1,10 @@
 # laraperf
 
-Performance analysis toolkit for LLM coding agents. Captures SQL queries, detects N+1 patterns, and runs `EXPLAIN ANALYZE` — all via short-lived Artisan commands that output structured JSON to stdout.
+Laravel performance analysis CLI tool purpose-built for LLM coding agents, no GUI or browser required. Captures SQL queries, detects N+1 patterns, and runs `EXPLAIN ANALYZE` — all via short-lived Artisan commands that output structured JSON to stdout. 
 
 ## The problem this solves
 
-LLM agents cannot observe long-running processes or receive async callbacks. Standard profiling tools (Debugbar, Clockwork, Telescope) are browser-UI-first. Eloquent and Filament generate queries that are invisible at the source level — the agent never sees the PHP that triggers them.
+Standard profiling tools (Debugbar, Clockwork, Telescope) are browser-UI-first. LLM agents cannot work long-running processes well. Eloquent and Filament generate queries that are invisible at the source level — the agent never sees the PHP that triggers them.
 
 This package solves all three:
 
@@ -16,23 +16,6 @@ This package solves all three:
 
 ```bash
 composer require mateffy/laraperf
-```
-
-The service provider is auto-discovered. No publish step needed — config is merged from the package defaults.
-
-## Configuration
-
-`config/laraperf.php` (auto-merged, no publish step needed):
-
-```php
-// Which Laravel connection perf:explain and perf:query use by default.
-// Override per-call with --connection.
-'connection' => env('PERF_CONNECTION', env('DB_CONNECTION', 'pgsql')),
-
-// Override the database name on the connection at runtime.
-// Used for multi-tenant setups: set to the specific tenant DB name.
-// Override per-call with --db.
-'db' => env('PERF_DB', null),
 ```
 
 ## Commands
@@ -202,26 +185,22 @@ Delete all session files from `storage/perf/`. Refuses to run if active watchers
 php artisan perf:clear --force
 ```
 
-## Architecture
+## Configuration
 
+`config/laraperf.php` (auto-merged, no publish step needed):
+
+```php
+// Which Laravel connection perf:explain and perf:query use by default.
+// Override per-call with --connection.
+'connection' => env('PERF_CONNECTION', env('DB_CONNECTION', 'pgsql')),
+
+// Override the database name on the connection at runtime.
+// Used for multi-tenant setups: set to the specific tenant DB name.
+// Override per-call with --db.
+'db' => env('PERF_DB', null),
 ```
-src/
-├── LaraperfServiceProvider.php    registers singletons, commands, boot-time listener hook
-├── QueryLogger.php                DB::listen handler; per-request batch_id; stack trace filter
-├── Storage/
-│   └── PerfStore.php              atomic JSON session files; PID sentinels; ring-buffer pruning
-├── Analysis/
-│   ├── QueryNormalizer.php        strip literals → stable hash; extract table/operation
-│   ├── N1Detector.php             group by (batch_id × hash); flag count ≥ threshold
-│   └── ExplainRunner.php          EXPLAIN ANALYZE; mutating stmts wrapped in rolled-back txn
-└── Commands/
-    ├── PerfWatchCommand.php       public: start session (detached or --sync)
-    ├── PerfWorkerCommand.php      hidden: long-running background process for detached mode
-    ├── PerfStopCommand.php         SIGTERM watchers via PID sentinels
-    ├── PerfQueryCommand.php       read session → JSON analysis
-    ├── PerfExplainCommand.php     EXPLAIN ANALYZE on SQL or hash reference
-    └── PerfClearCommand.php       wipe storage/perf/
-```
+
+## Architecture
 
 **Session files** live in `storage/perf/<session_id>.json`. Each session is a JSON object with a `queries` array. Writes are atomic (write to `.tmp.{pid}`, then `rename`). Up to 10 completed sessions are retained; older ones are pruned automatically.
 

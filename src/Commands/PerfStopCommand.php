@@ -57,9 +57,7 @@ class PerfStopCommand extends Command
                 }
 
                 // Force-kill if it didn't respond to SIGTERM.
-                /** @phpstan-ignore-next-line booleanAnd.leftAlwaysTrue (process state changes between iterations) */
                 if ($this->processIsAlive($pid)) {
-                    /** @phpstan-ignore-next-line if.alwaysTrue (process state changes after SIGTERM) */
                     posix_kill($pid, SIGKILL);
                 }
             } else {
@@ -81,6 +79,9 @@ class PerfStopCommand extends Command
         return self::SUCCESS;
     }
 
+    /**
+     * @phpstan-impure
+     */
     protected function processIsAlive(int $pid): bool
     {
         if (! function_exists('posix_kill')) {
