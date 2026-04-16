@@ -7,6 +7,7 @@ namespace Mateffy\Laraperf\Commands;
 use Illuminate\Console\Command;
 use Mateffy\Laraperf\Analysis\ExplainRunner;
 use Mateffy\Laraperf\Storage\PerfStore;
+use Symfony\Component\Console\Output\ConsoleOutputInterface;
 
 /**
  * Run EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) on a SQL statement.
@@ -55,7 +56,7 @@ class PerfExplainCommand extends Command
 
         $label = $database ? "{$connection} (db={$database})" : $connection;
         $raw_output = $this->output->getOutput();
-        $stderr = $raw_output instanceof \Symfony\Component\Console\Output\ConsoleOutputInterface
+        $stderr = $raw_output instanceof ConsoleOutputInterface
             ? $raw_output->getErrorOutput()
             : $raw_output;
         $stderr->writeln("Running EXPLAIN ANALYZE on connection [{$label}]…");
