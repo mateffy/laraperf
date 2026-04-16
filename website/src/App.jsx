@@ -1,67 +1,102 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import Dither from "@/components/Dither";
 
 const HERO_LINES = [
-  { type: 'comment', content: '# 1. start a 2-minute capture window' },
-  { type: 'command', prompt: '$', cmd: 'php artisan perf:watch --seconds=120' },
-  { type: 'output', content: '✓ session=session-20260416-143201-xK9mQp pid=47821 duration=120s' },
-  { type: 'blank' },
-  { type: 'comment', content: '# 2. exercise the app, then analyse' },
-  { type: 'command', prompt: '$', cmd: 'php artisan perf:query' },
-  { type: 'json', content: '{ "n1_candidate_count": 3, "slowest_query_ms": 890, "total_queries": 183 }' },
-  { type: 'blank' },
-  { type: 'comment', content: '# 3. drill into the query plan' },
-  { type: 'command', prompt: '$', cmd: 'php artisan perf:explain --hash=a1b2c3d4e5f6 | jq \'.[0].Plan\'' },
-  { type: 'json', content: '{ "Node Type": "Index Scan", "Actual Rows": 47 }' },
+    { type: "comment", content: "# 1. start a 2-minute capture window" },
+    {
+        type: "command",
+        prompt: "$",
+        cmd: "php artisan perf:watch --seconds=120",
+    },
+    {
+        type: "output",
+        content:
+            "✓ session=session-20260416-143201-xK9mQp pid=47821 duration=120s",
+    },
+    { type: "blank" },
+    { type: "comment", content: "# 2. exercise the app, then analyse" },
+    { type: "command", prompt: "$", cmd: "php artisan perf:query" },
+    {
+        type: "json",
+        content:
+            '{ "n1_candidate_count": 3, "slowest_query_ms": 890, "total_queries": 183 }',
+    },
+    { type: "blank" },
+    { type: "comment", content: "# 3. drill into the query plan" },
+    {
+        type: "command",
+        prompt: "$",
+        cmd: "php artisan perf:explain --hash=a1b2c3d4e5f6 | jq '.[0].Plan'",
+    },
+    {
+        type: "json",
+        content: '{ "Node Type": "Index Scan", "Actual Rows": 47 }',
+    },
 ];
 
 function TerminalLine({ line, delay }) {
-  return (
-    <div 
-      className="animate-fade-in-up"
-      style={{ animationDelay: `${delay}ms`, animationFillMode: 'both' }}
-    >
-      {line.type === 'blank' && <>&nbsp;</>}
-      {line.type === 'comment' && <span className="text-stone-500">{line.content}</span>}
-      {line.type === 'command' && (
-        <>
-          <span className="text-emerald-400">{line.prompt}</span>{' '}
-          <span className="text-stone-200">{line.cmd}</span>
-        </>
-      )}
-      {line.type === 'output' && <span className="text-emerald-300">{line.content}</span>}
-      {line.type === 'json' && (
-        <span 
-          className="text-stone-400"
-          dangerouslySetInnerHTML={{
-            __html: line.content
-              .replace(/"([^"]+)":/g, '<span class="text-blue-300">"$1"</span>:')
-              .replace(/: (\d+)/g, ': <span class="text-amber-300">$1</span>')
-              .replace(/: "([^"]+)"/g, ': <span class="text-green-300">"$1"</span>')
-          }}
-        />
-      )}
-    </div>
-  );
+    return (
+        <div
+            className="animate-fade-in-up"
+            style={{ animationDelay: `${delay}ms`, animationFillMode: "both" }}
+        >
+            {line.type === "blank" && <>&nbsp;</>}
+            {line.type === "comment" && (
+                <span className="text-stone-500">{line.content}</span>
+            )}
+            {line.type === "command" && (
+                <>
+                    <span className="text-emerald-400">{line.prompt}</span>{" "}
+                    <span className="text-stone-200">{line.cmd}</span>
+                </>
+            )}
+            {line.type === "output" && (
+                <span className="text-emerald-300">{line.content}</span>
+            )}
+            {line.type === "json" && (
+                <span
+                    className="text-stone-400"
+                    dangerouslySetInnerHTML={{
+                        __html: line.content
+                            .replace(
+                                /"([^"]+)":/g,
+                                '<span class="text-blue-300">"$1"</span>:',
+                            )
+                            .replace(
+                                /: (\d+)/g,
+                                ': <span class="text-amber-300">$1</span>',
+                            )
+                            .replace(
+                                /: "([^"]+)"/g,
+                                ': <span class="text-green-300">"$1"</span>',
+                            ),
+                    }}
+                />
+            )}
+        </div>
+    );
 }
 
 function HeroTerminal() {
-  return (
-    <div className="mx-auto max-w-3xl bg-stone-950 rounded-xl shadow-2xl border border-white/5 overflow-hidden text-left">
-      <div className="bg-stone-900 px-4 py-2.5 flex items-center gap-2 border-b border-white/5">
-        <div className="flex gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-          <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+    return (
+        <div className="mx-auto max-w-3xl bg-stone-950  shadow-2xl border border-white/5 overflow-hidden text-left">
+            <div className="bg-stone-900 px-4 py-2.5 flex items-center gap-2 border-b border-white/5">
+                <div className="flex gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                </div>
+                <span className="text-xs text-stone-500 font-mono ml-auto">
+                    bash
+                </span>
+            </div>
+            <pre className="p-6 text-sm font-mono overflow-x-auto leading-7">
+                {HERO_LINES.map((line, index) => (
+                    <TerminalLine key={index} line={line} delay={index * 45} />
+                ))}
+            </pre>
         </div>
-        <span className="text-xs text-stone-500 font-mono ml-auto">bash</span>
-      </div>
-      <pre className="p-6 text-sm font-mono overflow-x-auto leading-7">
-        {HERO_LINES.map((line, index) => (
-          <TerminalLine key={index} line={line} delay={index * 45} />
-        ))}
-      </pre>
-    </div>
-  );
+    );
 }
 
 function Nav() {
@@ -74,7 +109,7 @@ function Nav() {
 
     return (
         <nav
-            className={`sticky top-0 z-50 border-b bg-stone-50/80 backdrop-blur-md transition-colors ${scrolled ? "border-stone-200" : "border-transparent"}`}
+            className={`sticky mx-auto max-w-7xl top-0 z-50 border-x border-stone-500/30 border-b-stone-400/30 border-b bg-stone-50/85 backdrop-blur-md transition-colors shadow-2xl`}
         >
             <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center gap-8">
@@ -145,10 +180,25 @@ function Nav() {
 
 export default function App() {
     return (
-        <div className="bg-stone-50 text-stone-500 selection:bg-stone-400/20 bg-dots">
+        <div className="bg-stone-50 text-stone-500 selection:bg-stone-400/20 relative min-h-screen ">
+            {/* Three.js Dither background */}
+            <div className="fixed inset-0 z-0">
+                <Suspense
+                    fallback={<div className="w-full h-full bg-stone-50 " />}
+                >
+                    <Dither
+                        waveSpeed={0.01}
+                        waveColor={[1, 1, 1]}
+                        waveAmplitude={0.3}
+                        waveFrequency={2.4}
+                        enableMouseInteraction={false}
+                        className="opacity-30"
+                    />
+                </Suspense>
+            </div>
             <Nav />
 
-            <main className="mx-auto max-w-7xl border-x border-stone-200 bg-stone-50">
+            <main className="relative z-10 mx-auto max-w-7xl border-x border-stone-500/30 bg-stone-50/50 backdrop-blur-sm">
                 {/* ── HERO ── */}
                 <section className="relative pt-20 pb-12 text-center overflow-hidden border-b border-stone-200">
                     <h1 className="text-4xl md:text-6xl font-bold text-stone-900 leading-tight px-4 font-outfit mt-8">
@@ -174,7 +224,7 @@ export default function App() {
                             href="https://github.com/mateffy/laraperf"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="h-12 px-8 bg-emerald-600 text-white font-semibold rounded-full flex items-center gap-2 hover:scale-105 transition shadow-lg hover:bg-emerald-700"
+                            className="h-12 px-8 bg-emerald-600 text-white font-semibold  flex items-center gap-2 transition shadow-lg hover:bg-emerald-700"
                         >
                             View on GitHub
                             <svg
@@ -188,7 +238,7 @@ export default function App() {
                         </a>
                         <a
                             href="#install"
-                            className="h-12 px-8 bg-stone-200 text-stone-800 font-semibold rounded-full flex items-center gap-2 hover:scale-105 transition shadow-lg hover:bg-stone-300"
+                            className="h-12 px-8 bg-stone-100 text-stone-800 font-semibold  flex items-center gap-2 transition shadow-lg hover:bg-stone-700 hover:text-stone-100"
                         >
                             Quick install
                             <svg
@@ -323,7 +373,7 @@ export default function App() {
                             </ul>
                         </div>
 
-                        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-px bg-stone-200">
+                        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 divide-x divide-y divide-stone-800/30">
                             {[
                                 {
                                     icon: (
@@ -415,7 +465,10 @@ export default function App() {
                                             strokeLinejoin="round"
                                         >
                                             <circle cx="12" cy="12" r="10" />
-                                            <path d="M8 12h8M12 8v8" transform="rotate(45 12 12)"/>
+                                            <path
+                                                d="M8 12h8M12 8v8"
+                                                transform="rotate(45 12 12)"
+                                            />
                                         </svg>
                                     ),
                                     title: "Slow query detection",
@@ -486,19 +539,19 @@ export default function App() {
                             ].map(({ icon, title, desc }) => (
                                 <div
                                     key={title}
-                                    className="group bg-stone-100 p-8 transition-all hover:bg-emerald-50/40"
+                                    className="group bg-stone-950/60 p-8 transition-all hover:bg-stone-950/50"
                                 >
                                     <div className="mb-4">
-                                        <div className="w-10 h-10 flex items-center justify-center text-stone-400 group-hover:text-emerald-600 transition-colors">
+                                        <div className="w-6 h-6 flex items-center justify-center text-emerald-400 group-hover:text-emerald-300 transition-colors">
                                             <div className="w-6 h-6">
                                                 {icon}
                                             </div>
                                         </div>
                                     </div>
-                                    <h3 className="text-base font-bold text-stone-900 font-outfit">
+                                    <h3 className="text-base font-bold text-stone-50 font-outfit">
                                         {title}
                                     </h3>
-                                    <p className="mt-2 text-sm text-stone-500 leading-relaxed">
+                                    <p className="mt-2 text-sm text-stone-300 leading-relaxed">
                                         {desc}
                                     </p>
                                 </div>
@@ -509,76 +562,89 @@ export default function App() {
 
                 {/* ── WORKFLOW SECTION ── */}
                 <section className="grid grid-cols-1 lg:grid-cols-2 border-b border-stone-200">
-                    <div className="bg-stone-950 p-12 flex flex-col justify-center">
+                    <div className="bg-stone-950/60 p-12 flex flex-col justify-start">
                         <h2 className="text-2xl font-bold text-white mb-4 font-outfit">
-                            How agents use it
+                            How agents improve performance
                         </h2>
-                        <p className="text-stone-400 mb-6 leading-relaxed">
-                            Your agent runs commands, reads JSON output, and iterates.
-                            No browser UI, no human intervention.
+                        <p className="text-stone-300 mb-6 leading-relaxed">
+                            Your agent runs commands, reads JSON output, and
+                            iterates. No browser UI, no human intervention.
                         </p>
-                        <ul className="space-y-3 text-sm text-stone-400">
+                        <ul className="space-y-3 text-sm text-stone-300">
                             <li className="flex items-start gap-2">
-                                <span className="text-emerald-500">→</span>
-                                <span>Capture runs in background while agent exercises the app</span>
+                                <span className="text-emerald-400">→</span>
+                                <span>
+                                    Capture runs in background while agent
+                                    exercises the app
+                                </span>
                             </li>
                             <li className="flex items-start gap-2">
-                                <span className="text-emerald-500">→</span>
-                                <span>Query returns structured data with file paths and line numbers</span>
+                                <span className="text-emerald-400">→</span>
+                                <span>
+                                    Query returns structured data with file
+                                    paths and line numbers
+                                </span>
                             </li>
                             <li className="flex items-start gap-2">
-                                <span className="text-emerald-500">→</span>
-                                <span>Explain shows query plans to diagnose performance</span>
+                                <span className="text-emerald-400">→</span>
+                                <span>
+                                    Explain shows query plans to diagnose
+                                    performance
+                                </span>
                             </li>
                             <li className="flex items-start gap-2">
-                                <span className="text-emerald-500">→</span>
-                                <span>Agent fixes code and repeats until clean</span>
+                                <span className="text-emerald-400">→</span>
+                                <span>
+                                    Agent fixes code and repeats until clean
+                                </span>
                             </li>
                         </ul>
                     </div>
 
-                    <div className="p-12 flex flex-col justify-center divide-y divide-stone-200">
+                    <div className="p-12 flex flex-col justify-center divide-y divide-stone-800/10 bg-stone-950/60 ">
                         {[
                             {
                                 n: "1",
-                                cmd: "perf:watch",
-                                note: "Start capture session",
+                                cmd: "Run perf:watch",
+                                note: "Start a capture session in the background",
                             },
                             {
                                 n: "2",
-                                cmd: null,
-                                note: "Exercise the app",
+                                cmd: "Interact with your application",
+                                note: "Open pages, trigger actions, run tests — whatever exercises your queries",
                             },
                             {
                                 n: "3",
-                                cmd: "perf:query",
-                                note: "Find slow queries & N+1s",
+                                cmd: "Run perf:query",
+                                note: "Find slow queries and N+1s in the captured session, with exact source file and line number",
                             },
                             {
                                 n: "4",
-                                cmd: "perf:explain",
-                                note: "Diagnose query plans",
+                                cmd: "Run perf:explain",
+                                note: "Investigate issues, find missing indexes, and understand query performance with EXPLAIN ANALYZE output",
                             },
                             {
                                 n: "5",
-                                cmd: null,
-                                note: "Fix and repeat",
+                                cmd: "Fix and repeat",
+                                note: "Your agent iterates — updating code, re-running captures, and improving until all issues are resolved",
                             },
                         ].map(({ n, cmd, note }) => (
                             <div
                                 key={n}
                                 className="py-5 flex items-center gap-4"
                             >
-                                <span className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 text-sm font-bold flex items-center justify-center shrink-0">
+                                <span className="w-8 h-8 rounded-full bg-emerald-900 text-emerald-400 text-sm font-bold flex items-center justify-center shrink-0">
                                     {n}
                                 </span>
                                 <div className="flex-1">
                                     {cmd && (
-                                        <code className="text-emerald-700 font-mono text-sm font-bold">
+                                        <code className="text-white font-mono text-sm font-bold">
                                             {cmd}
                                         </code>
                                     )}
-                                    <p className={`text-stone-500 text-sm ${cmd ? 'mt-0.5' : ''}`}>
+                                    <p
+                                        className={`text-stone-300 text-sm ${cmd ? "mt-0.5" : ""}`}
+                                    >
                                         {note}
                                     </p>
                                 </div>
@@ -590,7 +656,7 @@ export default function App() {
                 {/* ── COMMANDS / CODE SECTION ── */}
                 <section
                     id="commands"
-                    className="py-24 px-4 md:px-12 border-b border-stone-200 bg-stone-50"
+                    className="py-24 px-4 md:px-12 border-b border-stone-200 "
                     x-data="{ tab: 'watch' }"
                     {...{ "x-data": "{ tab: 'watch' }" }}
                 >
@@ -627,7 +693,7 @@ export default function App() {
                 {/* ── INSTALL ── */}
                 <section
                     id="install"
-                    className="py-24 px-4 md:px-12 border-b border-stone-200"
+                    className="py-24 px-4 md:px-12 border-b border-stone-200 bg-stone-950/60"
                 >
                     <div className="text-center mb-16">
                         <svg
@@ -639,27 +705,28 @@ export default function App() {
                             strokeWidth="1.8"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="mx-auto mb-4 text-stone-400"
+                            className="mx-auto mb-4 text-emerald-400"
                         >
                             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
                             <polyline points="7 10 12 15 17 10" />
                             <line x1="12" y1="15" x2="12" y2="3" />
                         </svg>
-                        <h2 className="text-4xl font-bold text-stone-900 font-outfit">
-                            Install
+                        <h2 className="text-4xl font-bold text-stone-50 font-outfit">
+                            Installation
                         </h2>
-                        <p className="mt-4 text-stone-500 max-w-lg mx-auto">
-                            Two ways to get started — manual install or let your agent handle it.
+                        <p className="mt-4 text-stone-300 max-w-lg mx-auto">
+                            Two ways to get started — manual install or let your
+                            agent handle it.
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-px bg-stone-200 max-w-4xl mx-auto">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-px bg-stone-50/75 max-w-4xl mx-auto">
                         {/* Traditional Install */}
-                        <div className="bg-stone-50 p-8 lg:p-10">
+                        <div className=" p-8 lg:p-10">
                             <h3 className="text-lg font-bold text-stone-900 mb-6 font-outfit">
                                 Manual install
                             </h3>
-                            
+
                             <div className="space-y-6">
                                 <div>
                                     <div className="flex items-center gap-2 mb-3">
@@ -671,7 +738,9 @@ export default function App() {
                                         </span>
                                     </div>
                                     <div className="bg-stone-950 rounded-lg p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2">
-                                        <code className="text-xs">composer require mateffy/laraperf</code>
+                                        <code className="text-xs">
+                                            composer require mateffy/laraperf
+                                        </code>
                                         <button
                                             onClick={() =>
                                                 navigator.clipboard?.writeText(
@@ -691,7 +760,13 @@ export default function App() {
                                                 strokeLinecap="round"
                                                 strokeLinejoin="round"
                                             >
-                                                <rect x="9" y="9" width="13" height="13" rx="2" />
+                                                <rect
+                                                    x="9"
+                                                    y="9"
+                                                    width="13"
+                                                    height="13"
+                                                    rx="2"
+                                                />
                                                 <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
                                             </svg>
                                         </button>
@@ -708,9 +783,17 @@ export default function App() {
                                         </span>
                                     </div>
                                     <div className="bg-stone-950 rounded-lg p-3 font-mono text-xs text-stone-300 leading-5">
-                                        <div className="text-stone-500"># Connection for perf:explain</div>
+                                        <div className="text-stone-500">
+                                            # Connection for perf:explain
+                                        </div>
                                         <div>
-                                            <span className="text-blue-300">PERF_CONNECTION</span>=<span className="text-emerald-300">pgsql</span>
+                                            <span className="text-blue-300">
+                                                PERF_CONNECTION
+                                            </span>
+                                            =
+                                            <span className="text-emerald-300">
+                                                pgsql
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -723,9 +806,11 @@ export default function App() {
                                 Let your agent do it
                             </h3>
                             <p className="text-emerald-200/80 text-sm mb-6 leading-relaxed">
-                                Send your AI agent to this URL. It contains a complete skill that tells the agent how to install and use laraperf.
+                                Send your AI agent to this URL. It contains a
+                                complete skill that tells the agent how to
+                                install and use laraperf.
                             </p>
-                            <a 
+                            <a
                                 href="https://laraperf.dev/skill"
                                 target="_blank"
                                 rel="noopener noreferrer"
@@ -748,14 +833,15 @@ export default function App() {
                                 </svg>
                             </a>
                             <p className="mt-4 text-xs text-emerald-400/60">
-                                Works with Claude Code, Cursor, and any MCP-enabled agent
+                                Works with Claude Code, Cursor, and any
+                                MCP-enabled agent
                             </p>
                         </div>
                     </div>
                 </section>
 
                 {/* ── FOOTER ── */}
-                <footer className="bg-stone-50 pt-16 pb-10 px-4 md:px-12">
+                <footer className="pt-16 pb-10 px-4 md:px-12">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 pb-12">
                         <div className="lg:col-span-2">
                             <div className="flex items-center gap-2 text-emerald-900 font-bold text-xl mb-4 font-outfit">
@@ -1011,58 +1097,77 @@ const TABS = [
 ];
 
 function AnimatedTerminal({ code }) {
-  const lines = code.split('\n');
-  
-  const renderLine = (line) => {
-    // Command line: starts with $
-    if (line.startsWith('$ ')) {
-      return (
-        <span>
-          <span className="text-emerald-400">$</span>{' '}
-          <span className="text-stone-200">{line.slice(2)}</span>
-        </span>
-      );
-    }
-    // Success checkmark
-    if (line.startsWith('✓ ')) {
-      return <span className="text-emerald-300">{line}</span>;
-    }
-    // JSON output
-    if (line.startsWith('{') || line.startsWith('  "') || line.startsWith('}') || line.startsWith(']')) {
-      const highlighted = line
-        .replace(/"([^"]+)":/g, '<span class="text-blue-300">"$1"</span>:')
-        .replace(/: (\d+)/g, ': <span class="text-amber-300">$1</span>')
-        .replace(/: "([^"]+)"/g, ': <span class="text-green-300">"$1"</span>')
-        .replace(/: (null|true|false)/g, ': <span class="text-purple-300">$1</span>');
-      return <span dangerouslySetInnerHTML={{ __html: highlighted }} />;
-    }
-    // Default text
-    return <span className="text-stone-300">{line}</span>;
-  };
-  
-  return (
-    <div className="bg-stone-950 rounded-xl p-1 shadow-2xl overflow-hidden">
-      <div className="bg-stone-900 px-4 py-2 flex items-center gap-2 border-b border-white/5">
-        <div className="flex gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
-          <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
+    const lines = code.split("\n");
+
+    const renderLine = (line) => {
+        // Command line: starts with $
+        if (line.startsWith("$ ")) {
+            return (
+                <span>
+                    <span className="text-emerald-400">$</span>{" "}
+                    <span className="text-stone-200">{line.slice(2)}</span>
+                </span>
+            );
+        }
+        // Success checkmark
+        if (line.startsWith("✓ ")) {
+            return <span className="text-emerald-300">{line}</span>;
+        }
+        // JSON output
+        if (
+            line.startsWith("{") ||
+            line.startsWith('  "') ||
+            line.startsWith("}") ||
+            line.startsWith("]")
+        ) {
+            const highlighted = line
+                .replace(
+                    /"([^"]+)":/g,
+                    '<span class="text-blue-300">"$1"</span>:',
+                )
+                .replace(/: (\d+)/g, ': <span class="text-amber-300">$1</span>')
+                .replace(
+                    /: "([^"]+)"/g,
+                    ': <span class="text-green-300">"$1"</span>',
+                )
+                .replace(
+                    /: (null|true|false)/g,
+                    ': <span class="text-purple-300">$1</span>',
+                );
+            return <span dangerouslySetInnerHTML={{ __html: highlighted }} />;
+        }
+        // Default text
+        return <span className="text-stone-300">{line}</span>;
+    };
+
+    return (
+        <div className="bg-stone-950 rounded-xl p-1 shadow-2xl overflow-hidden">
+            <div className="bg-stone-900 px-4 py-2 flex items-center gap-2 border-b border-white/5">
+                <div className="flex gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
+                </div>
+                <span className="text-xs text-stone-500 font-mono ml-auto">
+                    bash
+                </span>
+            </div>
+            <pre className="p-5 text-xs font-mono overflow-x-auto leading-5 whitespace-pre-wrap">
+                {lines.map((line, index) => (
+                    <div
+                        key={index}
+                        className="animate-fade-in-up"
+                        style={{
+                            animationDelay: `${index * 40}ms`,
+                            animationFillMode: "both",
+                        }}
+                    >
+                        {renderLine(line)}
+                    </div>
+                ))}
+            </pre>
         </div>
-        <span className="text-xs text-stone-500 font-mono ml-auto">bash</span>
-      </div>
-      <pre className="p-5 text-xs font-mono overflow-x-auto leading-5 whitespace-pre-wrap">
-        {lines.map((line, index) => (
-          <div 
-            key={index} 
-            className="animate-fade-in-up"
-            style={{ animationDelay: `${index * 40}ms`, animationFillMode: 'both' }}
-          >
-            {renderLine(line)}
-          </div>
-        ))}
-      </pre>
-    </div>
-  );
+    );
 }
 
 function CommandTabs() {

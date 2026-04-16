@@ -8,6 +8,8 @@ use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
 use Mateffy\Laraperf\Analysis\QueryNormalizer;
 use Mateffy\Laraperf\Storage\PerfStore;
+use Mateffy\Laraperf\Testing\PerformanceSessionManager;
+use Mateffy\Laraperf\Testing\QueryRecord;
 
 /**
  * Listens to Illuminate\Database\Events\QueryExecuted and persists every
@@ -81,10 +83,7 @@ class QueryLogger
 
     protected function handleQuery(QueryExecuted $event): void
     {
-        if (! $this->session_id) {
-            return;
-        }
-
+        // Build the query record
         $raw_sql = $event->toRawSql();
         $source = $this->captureSource();
 
@@ -103,7 +102,31 @@ class QueryLogger
             'captured_at' => now()->toIso8601String(),
         ];
 
-        $this->store->appendQuery($this->session_id, $record);
+        // Route to file-based session (existing CLI behavior)
+        if ($this->session_id) {
+            $this->store->appendQuery($this->session_id, $record);
+        }
+
+        // NEW: Route to active testing sessions
+        // This enables the measure() and Pest integration
+        if (PerformanceSessionManager::isActive()) {
+            $queryRecord = new QueryRecord(
+                sql: $record['sql'],
+                rawSql: $record['raw_sql'],
+                bindings: $record['bindings'],
+                time_ms: $record['time_ms'],
+                connection: $record['connection'],
+                driver: $record['driver'],
+                operation: $record['operation'],
+                table: $record['table'],
+                hash: $record['hash'],
+                batch_id: $record['batch_id'],
+                source: $record['source'],
+                captured_at: $record['captured_at'],
+            );
+
+            PerformanceSessionManager::routeQuery($queryRecord);
+        }
     }
 
     // -------------------------------------------------------------------------

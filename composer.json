@@ -43,7 +43,11 @@
     "autoload": {
         "psr-4": {
             "Mateffy\\Laraperf\\": "src/"
-        }
+        },
+        "files": [
+            "src/Testing/Functions.php",
+            "src/Pest/Autoload.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Mateffy\Laraperf\Analysis;
 
+use Illuminate\Support\Collection;
+use Mateffy\Laraperf\Testing\QueryRecord;
+
 /**
  * Detects N+1 query patterns from a flat list of captured queries.
  *
@@ -18,16 +21,99 @@ class N1Detector
     public const DEFAULT_THRESHOLD = 3;
 
     public function __construct(
-        protected QueryNormalizer $normalizer = new QueryNormalizer,
-    ) {}
+        protected ?QueryNormalizer $normalizer = null,
+    ) {
+        $this->normalizer = $normalizer ?? new QueryNormalizer;
+    }
 
     /**
      * Analyse a flat array of query records and return N+1 candidates.
      *
+     * Supports both array and QueryRecord objects.
+     *
+     * @param  array<int, array<string, mixed>>|Collection<int, QueryRecord>  $queries
+     * @param  int  $threshold  Queries appearing this many times are flagged as N+1
+     * @return array<int, array<string, mixed>>|Collection<int, N1Candidate>
+     */
+    public function detect(array|Collection $queries, int $threshold = self::DEFAULT_THRESHOLD): array|Collection
+    {
+        // Handle QueryRecord collection
+        if ($queries instanceof Collection && $queries->first() instanceof QueryRecord) {
+            return $this->detectFromQueryRecords($queries, $threshold);
+        }
+
+        // Handle array format (original behavior for backward compatibility)
+        return $this->detectFromArrays($queries, $threshold);
+    }
+
+    /**
+     * Detect N+1 from QueryRecord objects.
+     *
+     * @param  Collection<int, QueryRecord>  $queries
+     * @param  int  $threshold  Queries appearing this many times are flagged as N+1
+     * @return Collection<int, N1Candidate>
+     */
+    protected function detectFromQueryRecords(Collection $queries, int $threshold = self::DEFAULT_THRESHOLD): Collection
+    {
+        $groups = [];
+
+        foreach ($queries as $query) {
+            $hash = $this->normalizer->hash($query->sql);
+            $key = $query->batch_id.'::'.$hash;
+
+            if (! isset($groups[$key])) {
+                $groups[$key] = [
+                    'hash' => $hash,
+                    'batch_id' => $query->batch_id,
+                    'table' => $query->table,
+                    'normalized_sql' => $this->normalizer->normalize($query->sql),
+                    'count' => 0,
+                    'total_time_ms' => 0.0,
+                    'examples' => [],
+                ];
+            }
+
+            $groups[$key]['count']++;
+            $groups[$key]['total_time_ms'] += $query->time_ms;
+
+            // Keep a few examples
+            if (count($groups[$key]['examples']) < 3) {
+                $groups[$key]['examples'][] = $query->toArray();
+            }
+        }
+
+        // Filter to groups exceeding threshold and create N1Candidate objects
+        $candidates = [];
+
+        foreach ($groups as $group) {
+            if ($group['count'] >= $threshold) {
+                $candidates[] = new N1Candidate(
+                    hash: $group['hash'],
+                    batchId: $group['batch_id'],
+                    count: $group['count'],
+                    totalTimeMs: round($group['total_time_ms'], 3),
+                    table: $group['table'],
+                    normalizedSql: $group['normalized_sql'],
+                    avgTimeMs: round($group['total_time_ms'] / $group['count'], 3),
+                    examples: $group['examples'],
+                );
+            }
+        }
+
+        // Sort by count descending
+        usort($candidates, fn ($a, $b) => $b->count <=> $a->count);
+
+        return collect($candidates);
+    }
+
+    /**
+     * Original detect method for backward compatibility with arrays.
+     *
      * @param  array<int, array<string, mixed>>  $queries
+     * @param  int  $threshold  Queries appearing this many times are flagged as N+1
      * @return array<int, array<string, mixed>>
      */
-    public function detect(array $queries, int $threshold = self::DEFAULT_THRESHOLD): array
+    protected function detectFromArrays(array $queries, int $threshold = self::DEFAULT_THRESHOLD): array
     {
         // Group queries by (batch_id, normalized_hash)
         $groups = [];
