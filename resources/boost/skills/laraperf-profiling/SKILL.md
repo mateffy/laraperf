@@ -50,9 +50,6 @@ php artisan perf:watch --forever        # until manually stopped
 
 # Tag the session for easy identification
 php artisan perf:watch --tag="filament-users-resource"
-
-# Optional URL to visit (informational only, does not auto-visit)
-php artisan perf:watch --url="/admin/users"
 ```
 
 While a session is active, trigger the code path you want to profile (visit a page, run a command, hit an API endpoint). All queries from all processes will be captured.
@@ -73,41 +70,62 @@ Sends SIGTERM to all background worker processes tracked by PID sentinel files a
 
 All output formats go to stdout as JSON. Status messages go to stderr.
 
+When called with no output flags, all three sections are included (summary, slow≥100ms, n1≥3).
+
 ```bash
-# Summary of the latest session (default)
+# Default: summary + slow queries + N+1 candidates
 php artisan perf:query
 
-# All captured queries
-php artisan perf:query --all
+# Summary only
+php artisan perf:query --summary
 
 # Slow queries above a threshold (ms)
 php artisan perf:query --slow=50
 
-# N+1 candidates with configurable threshold
-php artisan perf:query --n1 --threshold=3
+# N+1 candidates with repeat threshold
+php artisan perf:query --n1=3
+
+# Combine multiple outputs
+php artisan perf:query --summary --slow=50 --n1=3
 
 # Filter by connection or operation
-php artisan perf:query --connection=mysql --operation=SELECT
+php artisan perf:query --slow=50 --connection=mysql --operation=SELECT
 
 # Target a specific session
 php artisan perf:query --session=session-20260416-143022-abc123
 
 # Limit results
-php artisan perf:query --all --limit=20
+php artisan perf:query --slow=50 --limit=20
 ```
 
-**Output format** (JSON on stdout):
+**Output format** (JSON on stdout). When a single output is selected, that section is returned directly. When multiple are selected (or none for the default all), a composite object is returned:
 
 ```json
 {
-  "session_id": "session-20260416-143022-abc123",
-  "status": "completed",
-  "started_at": "2026-04-16T14:30:22+00:00",
-  "finished_at": "2026-04-16T14:35:22+00:00",
-  "query_count": 47,
-  "queries": [...],
-  "summary": { ... },
-  "n1_candidates": [ ... ]
+  "summary": {
+    "type": "summary",
+    "session_id": "session-20260416-143022-abc123",
+    "session_tag": null,
+    "status": "completed",
+    "total_queries": 47,
+    "unique_query_templates": 12,
+    "total_time_ms": 847.3,
+    "n1_candidate_count": 2,
+    "slow_query_count_100ms": 3,
+    "slow_query_count_500ms": 0
+  },
+  "slow": {
+    "type": "slow",
+    "threshold_ms": 100,
+    "count": 3,
+    "queries": [ ... ]
+  },
+  "n1": {
+    "type": "n1",
+    "threshold": 3,
+    "candidate_count": 2,
+    "candidates": [ ... ]
+  }
 }
 ```
 
@@ -192,7 +210,7 @@ php artisan perf:watch --sync --tag="filament-users-list"
 # Visit the Filament users list page in the browser
 # Queries are captured automatically via PHP-FPM interception
 # Ctrl+C to finalize
-php artisan perf:query --n1
+php artisan perf:query --n1=3
 ```
 
 ### Profile a Livewire Component
@@ -201,7 +219,7 @@ php artisan perf:query --n1
 php artisan perf:watch --tag="property-search-component"
 # Interact with the Livewire component in the browser
 php artisan perf:stop
-php artisan perf:query --all --limit=50
+php artisan perf:query --slow=50 --limit=50
 ```
 
 ### Investigate a Specific Slow Query

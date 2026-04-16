@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Mateffy\Laraperf\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
 use Mateffy\Laraperf\Analysis\QueryNormalizer;
 use Mateffy\Laraperf\QueryLogger;
 use Mateffy\Laraperf\Storage\PerfStore;
@@ -28,7 +27,6 @@ class PerfWorkerCommand extends Command
         {--session=        : Session ID to manage.}
         {--seconds=300     : How long to collect.}
         {--forever         : Collect indefinitely.}
-        {--url=            : Fire a self-request after starting.}
         {--tag=            : Session tag.}';
 
     protected $description = 'Internal: background worker for perf:watch (do not call directly).';
@@ -64,8 +62,7 @@ class PerfWorkerCommand extends Command
         $session['worker_pid'] = $pid;
         $this->store->writeSession($session_id, $session);
 
-        // Attach the logger — this process will capture any queries it runs
-        // (e.g. via self-request) plus the listener is the "active flag"
+        // Attach the logger — this process serves as the "active flag"
         // consulted by LaraperfServiceProvider in normal PHP-FPM requests.
         $logger = new QueryLogger($this->store, $this->normalizer);
         $logger->start($session_id);
@@ -82,18 +79,6 @@ class PerfWorkerCommand extends Command
         if (function_exists('pcntl_signal')) {
             pcntl_signal(SIGINT, $finalize);
             pcntl_signal(SIGTERM, $finalize);
-        }
-
-        // Optionally fire a self-request to capture that specific page's queries.
-        $url = $this->option('url');
-
-        if ($url) {
-            try {
-                $full_url = url($url);
-                Http::timeout(30)->get($full_url);
-            } catch (\Throwable) {
-                // Non-fatal — session continues.
-            }
         }
 
         $start = microtime(true);

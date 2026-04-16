@@ -1,0 +1,1133 @@
+import { useState, useEffect } from "react";
+
+const HERO_LINES = [
+  { type: 'comment', content: '# 1. start a 2-minute capture window' },
+  { type: 'command', prompt: '$', cmd: 'php artisan perf:watch --seconds=120' },
+  { type: 'output', content: '✓ session=session-20260416-143201-xK9mQp pid=47821 duration=120s' },
+  { type: 'blank' },
+  { type: 'comment', content: '# 2. exercise the app, then analyse' },
+  { type: 'command', prompt: '$', cmd: 'php artisan perf:query' },
+  { type: 'json', content: '{ "n1_candidate_count": 3, "slowest_query_ms": 890, "total_queries": 183 }' },
+  { type: 'blank' },
+  { type: 'comment', content: '# 3. drill into the query plan' },
+  { type: 'command', prompt: '$', cmd: 'php artisan perf:explain --hash=a1b2c3d4e5f6 | jq \'.[0].Plan\'' },
+  { type: 'json', content: '{ "Node Type": "Index Scan", "Actual Rows": 47 }' },
+];
+
+function TerminalLine({ line, delay }) {
+  return (
+    <div 
+      className="animate-fade-in-up"
+      style={{ animationDelay: `${delay}ms`, animationFillMode: 'both' }}
+    >
+      {line.type === 'blank' && <>&nbsp;</>}
+      {line.type === 'comment' && <span className="text-stone-500">{line.content}</span>}
+      {line.type === 'command' && (
+        <>
+          <span className="text-emerald-400">{line.prompt}</span>{' '}
+          <span className="text-stone-200">{line.cmd}</span>
+        </>
+      )}
+      {line.type === 'output' && <span className="text-emerald-300">{line.content}</span>}
+      {line.type === 'json' && (
+        <span 
+          className="text-stone-400"
+          dangerouslySetInnerHTML={{
+            __html: line.content
+              .replace(/"([^"]+)":/g, '<span class="text-blue-300">"$1"</span>:')
+              .replace(/: (\d+)/g, ': <span class="text-amber-300">$1</span>')
+              .replace(/: "([^"]+)"/g, ': <span class="text-green-300">"$1"</span>')
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function HeroTerminal() {
+  return (
+    <div className="mx-auto max-w-3xl bg-stone-950 rounded-xl shadow-2xl border border-white/5 overflow-hidden text-left">
+      <div className="bg-stone-900 px-4 py-2.5 flex items-center gap-2 border-b border-white/5">
+        <div className="flex gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+          <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+        </div>
+        <span className="text-xs text-stone-500 font-mono ml-auto">bash</span>
+      </div>
+      <pre className="p-6 text-sm font-mono overflow-x-auto leading-7">
+        {HERO_LINES.map((line, index) => (
+          <TerminalLine key={index} line={line} delay={index * 45} />
+        ))}
+      </pre>
+    </div>
+  );
+}
+
+function Nav() {
+    const [scrolled, setScrolled] = useState(false);
+    useEffect(() => {
+        const fn = () => setScrolled(window.scrollY > 10);
+        window.addEventListener("scroll", fn, { passive: true });
+        return () => window.removeEventListener("scroll", fn);
+    }, []);
+
+    return (
+        <nav
+            className={`sticky top-0 z-50 border-b bg-stone-50/80 backdrop-blur-md transition-colors ${scrolled ? "border-stone-200" : "border-transparent"}`}
+        >
+            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center gap-8">
+                    <a
+                        href="#"
+                        className="flex items-center gap-2 font-bold text-xl text-emerald-900 font-outfit"
+                    >
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="text-emerald-600"
+                        >
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                        </svg>
+                        laraperf
+                    </a>
+                    <div className="hidden md:flex items-center gap-6 text-sm font-medium text-stone-500">
+                        <a
+                            href="#how-it-works"
+                            className="hover:text-emerald-700 transition"
+                        >
+                            How it works
+                        </a>
+                        <a
+                            href="#commands"
+                            className="hover:text-emerald-700 transition"
+                        >
+                            Commands
+                        </a>
+                        <a
+                            href="#install"
+                            className="hover:text-emerald-700 transition"
+                        >
+                            Install
+                        </a>
+                    </div>
+                </div>
+                <div className="flex items-center gap-4 text-sm font-medium">
+                    <div className="hidden lg:flex items-center gap-4 border-r border-stone-200 pr-4">
+                        <a
+                            href="https://github.com/mateffy/laraperf"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-stone-500 hover:text-emerald-700 transition"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                            >
+                                <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                            </svg>
+                            GitHub
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    );
+}
+
+export default function App() {
+    return (
+        <div className="bg-stone-50 text-stone-500 selection:bg-stone-400/20 bg-dots">
+            <Nav />
+
+            <main className="mx-auto max-w-7xl border-x border-stone-200 bg-stone-50">
+                {/* ── HERO ── */}
+                <section className="relative pt-20 pb-12 text-center overflow-hidden border-b border-stone-200">
+                    <h1 className="text-4xl md:text-6xl font-bold text-stone-900 leading-tight px-4 font-outfit mt-8">
+                        Laravel performance profiling
+                        <br />
+                        <span className="text-stone-500 font-medium">
+                            for LLM coding agents.
+                        </span>
+                    </h1>
+
+                    <p className="mt-6 text-lg md:text-xl text-stone-500 max-w-2xl mx-auto px-4">
+                        Capture queries, detect performance issues or N+1
+                        patterns, and run{" "}
+                        <code className="text-sm bg-stone-100 px-1.5 py-0.5 rounded text-stone-700">
+                            EXPLAIN ANALYZE
+                        </code>{" "}
+                        — all via Artisan commands that output structured JSON
+                        to stdout. No browser, no GUI.
+                    </p>
+
+                    <div className="mt-10 flex flex-wrap justify-center gap-4">
+                        <a
+                            href="https://github.com/mateffy/laraperf"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="h-12 px-8 bg-emerald-600 text-white font-semibold rounded-full flex items-center gap-2 hover:scale-105 transition shadow-lg hover:bg-emerald-700"
+                        >
+                            View on GitHub
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                            >
+                                <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                            </svg>
+                        </a>
+                        <a
+                            href="#install"
+                            className="h-12 px-8 bg-stone-200 text-stone-800 font-semibold rounded-full flex items-center gap-2 hover:scale-105 transition shadow-lg hover:bg-stone-300"
+                        >
+                            Quick install
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                                <polyline points="12 5 19 12 12 19" />
+                            </svg>
+                        </a>
+                    </div>
+
+                    {/* Hero code block */}
+                    <div className="mt-16 px-4">
+                        <HeroTerminal />
+                    </div>
+                </section>
+
+                {/* ── DESIGNED FOR AGENTS ── */}
+                <section
+                    id="how-it-works"
+                    className="py-20 px-4 md:px-12 border-b border-stone-200"
+                >
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
+                        <div className="lg:col-span-1">
+                            <h2 className="text-3xl md:text-4xl font-bold text-stone-900 font-outfit">
+                                Designed for
+                                <br />
+                                how agents work
+                            </h2>
+                            <p className="text-2xl text-stone-400 font-medium mt-1 font-outfit">
+                                not for humans
+                            </p>
+                            <p className="mt-6 text-stone-500 leading-relaxed">
+                                Standard tools — Debugbar, Clockwork, Telescope
+                                — require a browser UI. LLM agents invoke
+                                commands, read JSON, and loop. laraperf is built
+                                around that model.
+                            </p>
+                            <ul className="mt-6 space-y-2 text-sm text-stone-500">
+                                <li className="flex items-center gap-2">
+                                    <svg
+                                        width="14"
+                                        height="14"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="text-emerald-600 shrink-0"
+                                    >
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                    Every command exits immediately
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <svg
+                                        width="14"
+                                        height="14"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="text-emerald-600 shrink-0"
+                                    >
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                    All output is structured JSON to stdout
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <svg
+                                        width="14"
+                                        height="14"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="text-emerald-600 shrink-0"
+                                    >
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                    Status/errors go to stderr — safe to pipe
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <svg
+                                        width="14"
+                                        height="14"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="text-emerald-600 shrink-0"
+                                    >
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                    Hashes let agents reference queries across
+                                    commands
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <svg
+                                        width="14"
+                                        height="14"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="text-emerald-600 shrink-0"
+                                    >
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                    Stack traces filtered to{" "}
+                                    <code className="bg-stone-100 px-1 rounded text-stone-700 text-xs">
+                                        app/
+                                    </code>{" "}
+                                    — no vendor noise
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-px bg-stone-200">
+                            {[
+                                {
+                                    icon: (
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="1.8"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        >
+                                            <circle cx="12" cy="12" r="10" />
+                                            <polyline points="12 6 12 12 16 14" />
+                                        </svg>
+                                    ),
+                                    title: "Capture",
+                                    desc: "Start a session and let it run. Captures every query automatically while your agent exercises the app.",
+                                },
+                                {
+                                    icon: (
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="1.8"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        >
+                                            <line
+                                                x1="18"
+                                                y1="20"
+                                                x2="18"
+                                                y2="10"
+                                            />
+                                            <line
+                                                x1="12"
+                                                y1="20"
+                                                x2="12"
+                                                y2="4"
+                                            />
+                                            <line
+                                                x1="6"
+                                                y1="20"
+                                                x2="6"
+                                                y2="14"
+                                            />
+                                        </svg>
+                                    ),
+                                    title: "Analyse",
+                                    desc: "Get a JSON summary with total queries, slow queries, and N+1 candidates with source file and line number.",
+                                },
+                                {
+                                    icon: (
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="1.8"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        >
+                                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                                            <polyline points="14 2 14 8 20 8" />
+                                            <line
+                                                x1="16"
+                                                y1="13"
+                                                x2="8"
+                                                y2="13"
+                                            />
+                                            <line
+                                                x1="16"
+                                                y1="17"
+                                                x2="8"
+                                                y2="17"
+                                            />
+                                        </svg>
+                                    ),
+                                    title: "Explain",
+                                    desc: "Run EXPLAIN ANALYZE on any query. Pass raw SQL or reference a hash from the query output.",
+                                },
+                                {
+                                    icon: (
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="1.8"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        >
+                                            <circle cx="12" cy="12" r="10" />
+                                            <path d="M8 12h8M12 8v8" transform="rotate(45 12 12)"/>
+                                        </svg>
+                                    ),
+                                    title: "Slow query detection",
+                                    desc: "Find queries exceeding your threshold. Returns execution time, SQL hash, and exact source location in your codebase.",
+                                },
+                                {
+                                    icon: (
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="1.8"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        >
+                                            <circle cx="11" cy="11" r="8" />
+                                            <line
+                                                x1="21"
+                                                y1="21"
+                                                x2="16.65"
+                                                y2="16.65"
+                                            />
+                                        </svg>
+                                    ),
+                                    title: "N+1 Detection",
+                                    desc: "Identifies repeated queries that should be eager loaded. Groups identical SQL patterns and counts occurrences.",
+                                },
+                                {
+                                    icon: (
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="1.8"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        >
+                                            <polyline points="16 18 22 12 16 6" />
+                                            <polyline points="8 6 2 12 8 18" />
+                                        </svg>
+                                    ),
+                                    title: "Clean stack traces",
+                                    desc: "Your agent only sees your app code. Vendor frames are filtered out so the source location points directly to your code.",
+                                },
+                                {
+                                    icon: (
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="1.8"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        >
+                                            <ellipse
+                                                cx="12"
+                                                cy="5"
+                                                rx="9"
+                                                ry="3"
+                                            />
+                                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                                        </svg>
+                                    ),
+                                    title: "Multi-tenant",
+                                    desc: "Override the database name at runtime. No config changes needed, works with any tenancy setup.",
+                                },
+                            ].map(({ icon, title, desc }) => (
+                                <div
+                                    key={title}
+                                    className="group bg-stone-100 p-8 transition-all hover:bg-emerald-50/40"
+                                >
+                                    <div className="mb-4">
+                                        <div className="w-10 h-10 flex items-center justify-center text-stone-400 group-hover:text-emerald-600 transition-colors">
+                                            <div className="w-6 h-6">
+                                                {icon}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <h3 className="text-base font-bold text-stone-900 font-outfit">
+                                        {title}
+                                    </h3>
+                                    <p className="mt-2 text-sm text-stone-500 leading-relaxed">
+                                        {desc}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* ── WORKFLOW SECTION ── */}
+                <section className="grid grid-cols-1 lg:grid-cols-2 border-b border-stone-200">
+                    <div className="bg-stone-950 p-12 flex flex-col justify-center">
+                        <h2 className="text-2xl font-bold text-white mb-4 font-outfit">
+                            How agents use it
+                        </h2>
+                        <p className="text-stone-400 mb-6 leading-relaxed">
+                            Your agent runs commands, reads JSON output, and iterates.
+                            No browser UI, no human intervention.
+                        </p>
+                        <ul className="space-y-3 text-sm text-stone-400">
+                            <li className="flex items-start gap-2">
+                                <span className="text-emerald-500">→</span>
+                                <span>Capture runs in background while agent exercises the app</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="text-emerald-500">→</span>
+                                <span>Query returns structured data with file paths and line numbers</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="text-emerald-500">→</span>
+                                <span>Explain shows query plans to diagnose performance</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="text-emerald-500">→</span>
+                                <span>Agent fixes code and repeats until clean</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div className="p-12 flex flex-col justify-center divide-y divide-stone-200">
+                        {[
+                            {
+                                n: "1",
+                                cmd: "perf:watch",
+                                note: "Start capture session",
+                            },
+                            {
+                                n: "2",
+                                cmd: null,
+                                note: "Exercise the app",
+                            },
+                            {
+                                n: "3",
+                                cmd: "perf:query",
+                                note: "Find slow queries & N+1s",
+                            },
+                            {
+                                n: "4",
+                                cmd: "perf:explain",
+                                note: "Diagnose query plans",
+                            },
+                            {
+                                n: "5",
+                                cmd: null,
+                                note: "Fix and repeat",
+                            },
+                        ].map(({ n, cmd, note }) => (
+                            <div
+                                key={n}
+                                className="py-5 flex items-center gap-4"
+                            >
+                                <span className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 text-sm font-bold flex items-center justify-center shrink-0">
+                                    {n}
+                                </span>
+                                <div className="flex-1">
+                                    {cmd && (
+                                        <code className="text-emerald-700 font-mono text-sm font-bold">
+                                            {cmd}
+                                        </code>
+                                    )}
+                                    <p className={`text-stone-500 text-sm ${cmd ? 'mt-0.5' : ''}`}>
+                                        {note}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                {/* ── COMMANDS / CODE SECTION ── */}
+                <section
+                    id="commands"
+                    className="py-24 px-4 md:px-12 border-b border-stone-200 bg-stone-50"
+                    x-data="{ tab: 'watch' }"
+                    {...{ "x-data": "{ tab: 'watch' }" }}
+                >
+                    <div className="text-center mb-16">
+                        <svg
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="mx-auto mb-4 text-stone-400"
+                        >
+                            <polyline points="16 18 22 12 16 6" />
+                            <polyline points="8 6 2 12 8 18" />
+                        </svg>
+                        <h2 className="text-4xl font-bold text-stone-900 font-outfit">
+                            CLI reference
+                        </h2>
+                        <p className="mt-4 text-stone-500">
+                            All output goes to{" "}
+                            <strong className="text-stone-700">stdout</strong>.
+                            Status lines go to{" "}
+                            <strong className="text-stone-700">stderr</strong>.
+                            Safe to pipe anywhere.
+                        </p>
+                    </div>
+
+                    <CommandTabs />
+                </section>
+
+                {/* ── INSTALL ── */}
+                <section
+                    id="install"
+                    className="py-24 px-4 md:px-12 border-b border-stone-200"
+                >
+                    <div className="text-center mb-16">
+                        <svg
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="mx-auto mb-4 text-stone-400"
+                        >
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        <h2 className="text-4xl font-bold text-stone-900 font-outfit">
+                            Install
+                        </h2>
+                        <p className="mt-4 text-stone-500 max-w-lg mx-auto">
+                            Two ways to get started — manual install or let your agent handle it.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-px bg-stone-200 max-w-4xl mx-auto">
+                        {/* Traditional Install */}
+                        <div className="bg-stone-50 p-8 lg:p-10">
+                            <h3 className="text-lg font-bold text-stone-900 mb-6 font-outfit">
+                                Manual install
+                            </h3>
+                            
+                            <div className="space-y-6">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                                            1
+                                        </span>
+                                        <span className="font-bold text-stone-900 text-sm">
+                                            Install via Composer
+                                        </span>
+                                    </div>
+                                    <div className="bg-stone-950 rounded-lg p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2">
+                                        <code className="text-xs">composer require mateffy/laraperf</code>
+                                        <button
+                                            onClick={() =>
+                                                navigator.clipboard?.writeText(
+                                                    "composer require mateffy/laraperf",
+                                                )
+                                            }
+                                            className="text-stone-500 hover:text-stone-300 transition shrink-0"
+                                            title="Copy"
+                                        >
+                                            <svg
+                                                width="12"
+                                                height="12"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            >
+                                                <rect x="9" y="9" width="13" height="13" rx="2" />
+                                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="w-5 h-5 rounded-full bg-stone-300 text-stone-600 text-xs font-bold flex items-center justify-center shrink-0">
+                                            2
+                                        </span>
+                                        <span className="font-bold text-stone-700 text-sm">
+                                            Optional: env config
+                                        </span>
+                                    </div>
+                                    <div className="bg-stone-950 rounded-lg p-3 font-mono text-xs text-stone-300 leading-5">
+                                        <div className="text-stone-500"># Connection for perf:explain</div>
+                                        <div>
+                                            <span className="text-blue-300">PERF_CONNECTION</span>=<span className="text-emerald-300">pgsql</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Agent Skill */}
+                        <div className="bg-emerald-950 p-8 lg:p-10">
+                            <h3 className="text-lg font-bold text-white mb-4 font-outfit">
+                                Let your agent do it
+                            </h3>
+                            <p className="text-emerald-200/80 text-sm mb-6 leading-relaxed">
+                                Send your AI agent to this URL. It contains a complete skill that tells the agent how to install and use laraperf.
+                            </p>
+                            <a 
+                                href="https://laraperf.dev/skill"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg font-semibold text-sm transition"
+                            >
+                                laraperf.dev/skill
+                                <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                >
+                                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                                    <polyline points="15 3 21 3 21 9" />
+                                    <line x1="10" y1="14" x2="21" y2="3" />
+                                </svg>
+                            </a>
+                            <p className="mt-4 text-xs text-emerald-400/60">
+                                Works with Claude Code, Cursor, and any MCP-enabled agent
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ── FOOTER ── */}
+                <footer className="bg-stone-50 pt-16 pb-10 px-4 md:px-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 pb-12">
+                        <div className="lg:col-span-2">
+                            <div className="flex items-center gap-2 text-emerald-900 font-bold text-xl mb-4 font-outfit">
+                                <svg
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="text-emerald-600"
+                                >
+                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                                </svg>
+                                laraperf
+                            </div>
+                            <p className="text-stone-500 text-sm max-w-xs leading-relaxed">
+                                A{" "}
+                                <strong className="text-stone-700">
+                                    Laravel performance CLI
+                                </strong>{" "}
+                                purpose-built for LLM coding agents. MIT
+                                License.
+                            </p>
+                            <div className="flex gap-4 mt-6 text-stone-400">
+                                <a
+                                    href="https://github.com/mateffy/laraperf"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:text-emerald-600 transition"
+                                >
+                                    <svg
+                                        width="18"
+                                        height="18"
+                                        viewBox="0 0 24 24"
+                                        fill="currentColor"
+                                    >
+                                        <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-stone-900 mb-6 font-outfit">
+                                Package
+                            </h4>
+                            <ul className="space-y-3 text-sm text-stone-500">
+                                <li>
+                                    <a
+                                        href="https://github.com/mateffy/laraperf"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="hover:text-emerald-700 transition"
+                                    >
+                                        GitHub
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href="https://packagist.org/packages/mateffy/laraperf"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="hover:text-emerald-700 transition"
+                                    >
+                                        Packagist
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href="https://github.com/mateffy/laraperf/blob/main/CHANGELOG.md"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="hover:text-emerald-700 transition"
+                                    >
+                                        Changelog
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href="https://github.com/mateffy/laraperf/blob/main/LICENSE.md"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="hover:text-emerald-700 transition"
+                                    >
+                                        License
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-stone-900 mb-6 font-outfit">
+                                Commands
+                            </h4>
+                            <ul className="space-y-3 text-sm text-stone-500 font-mono">
+                                <li>
+                                    <a
+                                        href="#commands"
+                                        className="hover:text-emerald-700 transition"
+                                    >
+                                        perf:watch
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href="#commands"
+                                        className="hover:text-emerald-700 transition"
+                                    >
+                                        perf:query
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href="#commands"
+                                        className="hover:text-emerald-700 transition"
+                                    >
+                                        perf:explain
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href="#commands"
+                                        className="hover:text-emerald-700 transition"
+                                    >
+                                        perf:stop
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href="#commands"
+                                        className="hover:text-emerald-700 transition"
+                                    >
+                                        perf:clear
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div className="border-t border-stone-200 pt-8 text-xs text-stone-400 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <span>© 2026 laraperf · MIT License</span>
+                        <a
+                            href="https://github.com/mateffy/laraperf"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-stone-400 hover:text-emerald-700 transition"
+                        >
+                            mateffy/laraperf
+                        </a>
+                    </div>
+                </footer>
+            </main>
+        </div>
+    );
+}
+
+// ── Command Tabs (React state, since Alpine won't easily reach into JSX) ──────
+const TABS = [
+    {
+        id: "watch",
+        label: "perf:watch",
+        desc: "Start a capture session. Returns immediately by default (detached). Workers run in the background and append queries to a JSON file.",
+        flags: [
+            {
+                flag: "--sync",
+                desc: "Run in foreground; Ctrl+C or timeout ends it",
+            },
+            { flag: "--seconds=N", desc: "Window duration. Default: 300" },
+            {
+                flag: "--forever",
+                desc: "Keep alive indefinitely (detached only)",
+            },
+            { flag: "--tag=label", desc: "Label stored in session metadata" },
+        ],
+        code: `$ php artisan perf:watch --seconds=120
+✓ session=session-20260416-143201-xK9mQp pid=47821 duration=120s
+  Use \`perf:stop\` to stop early, or wait for the timeout.
+  Then run: php artisan perf:query --session=session-20260416-143201-xK9mQp`,
+    },
+    {
+        id: "query",
+        label: "perf:query",
+        desc: "Read a completed session and output analysis as JSON to stdout. Status lines go to stderr. Flags combine freely — omitting all returns summary + slow + n1.",
+        flags: [
+            {
+                flag: "--session=last",
+                desc: 'Session ID, or "last" for most recent',
+            },
+            { flag: "--summary", desc: "Aggregate session stats" },
+            {
+                flag: "--slow=N",
+                desc: "Queries slower than N ms (default 100)",
+            },
+            {
+                flag: "--n1=N",
+                desc: "N+1 candidates where same query repeats ≥ N times",
+            },
+            { flag: "--limit=50", desc: "Max records returned" },
+            { flag: "--format=json", desc: "json (default) or table" },
+        ],
+        code: `$ php artisan perf:query --n1=3 | jq '.n1.candidates[0]'
+{
+  "count": 47,
+  "table": "contacts",
+  "normalized_sql": "select * from \\"contacts\\" where \\"id\\" = ?",
+  "example_source": [
+    { "file": "app/Domains/Deals/Resources/DealResource/Pages/ListDeals.php",
+      "line": 47, "function": "getTableQuery" }
+  ]
+}`,
+    },
+    {
+        id: "explain",
+        label: "perf:explain",
+        desc: "Run EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) on any SQL. Pass raw SQL or reference a hash from perf:query. Non-SELECT is wrapped in BEGIN/ROLLBACK.",
+        flags: [
+            {
+                flag: "--sql=",
+                desc: "Raw SQL with bindings already interpolated",
+            },
+            { flag: "--hash=", desc: "12-char hash from perf:query output" },
+            { flag: "--session=last", desc: "Session to look up --hash from" },
+            { flag: "--connection=", desc: "Laravel connection name" },
+            {
+                flag: "--db=",
+                desc: "Override database name at runtime (multi-tenant)",
+            },
+        ],
+        code: `$ php artisan perf:explain --hash=a1b2c3d4e5f6 --db=tenant_dev | jq '.[0].Plan'
+{
+  "Node Type": "Seq Scan",
+  "Relation Name": "contacts",
+  "Actual Rows": 4721,
+  "Total Cost": 8432.11
+}`,
+    },
+    {
+        id: "stop",
+        label: "perf:stop",
+        desc: "Stop all running detached watchers. Sends SIGTERM, waits up to 2s, then SIGKILL. Finalizes sessions and removes PID sentinels.",
+        flags: [{ flag: "--session=", desc: "Stop a specific session only" }],
+        code: `$ php artisan perf:stop
+✓ Stopped watcher pid=47821 (session-20260416-143201-xK9mQp)`,
+    },
+    {
+        id: "clear",
+        label: "perf:clear",
+        desc: "Delete all session files from storage/perf/. Refuses to run if active watchers are detected.",
+        flags: [{ flag: "--force", desc: "Skip confirmation prompt" }],
+        code: `$ php artisan perf:clear --force
+✓ Deleted 8 session files from storage/perf/`,
+    },
+];
+
+function AnimatedTerminal({ code }) {
+  const lines = code.split('\n');
+  
+  const renderLine = (line) => {
+    // Command line: starts with $
+    if (line.startsWith('$ ')) {
+      return (
+        <span>
+          <span className="text-emerald-400">$</span>{' '}
+          <span className="text-stone-200">{line.slice(2)}</span>
+        </span>
+      );
+    }
+    // Success checkmark
+    if (line.startsWith('✓ ')) {
+      return <span className="text-emerald-300">{line}</span>;
+    }
+    // JSON output
+    if (line.startsWith('{') || line.startsWith('  "') || line.startsWith('}') || line.startsWith(']')) {
+      const highlighted = line
+        .replace(/"([^"]+)":/g, '<span class="text-blue-300">"$1"</span>:')
+        .replace(/: (\d+)/g, ': <span class="text-amber-300">$1</span>')
+        .replace(/: "([^"]+)"/g, ': <span class="text-green-300">"$1"</span>')
+        .replace(/: (null|true|false)/g, ': <span class="text-purple-300">$1</span>');
+      return <span dangerouslySetInnerHTML={{ __html: highlighted }} />;
+    }
+    // Default text
+    return <span className="text-stone-300">{line}</span>;
+  };
+  
+  return (
+    <div className="bg-stone-950 rounded-xl p-1 shadow-2xl overflow-hidden">
+      <div className="bg-stone-900 px-4 py-2 flex items-center gap-2 border-b border-white/5">
+        <div className="flex gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+          <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
+        </div>
+        <span className="text-xs text-stone-500 font-mono ml-auto">bash</span>
+      </div>
+      <pre className="p-5 text-xs font-mono overflow-x-auto leading-5 whitespace-pre-wrap">
+        {lines.map((line, index) => (
+          <div 
+            key={index} 
+            className="animate-fade-in-up"
+            style={{ animationDelay: `${index * 40}ms`, animationFillMode: 'both' }}
+          >
+            {renderLine(line)}
+          </div>
+        ))}
+      </pre>
+    </div>
+  );
+}
+
+function CommandTabs() {
+    const [active, setActive] = useState("watch");
+    const tab = TABS.find((t) => t.id === active);
+
+    return (
+        <div className="max-w-5xl mx-auto">
+            <div className="flex border-b border-stone-200 scrollbar-hide overflow-x-auto">
+                {TABS.map((t) => (
+                    <button
+                        key={t.id}
+                        onClick={() => setActive(t.id)}
+                        className={`px-5 py-3 text-sm font-bold font-mono tracking-wide transition whitespace-nowrap ${
+                            active === t.id
+                                ? "border-b-2 border-emerald-600 bg-white text-stone-900"
+                                : "text-stone-400 hover:text-stone-600"
+                        }`}
+                    >
+                        {t.label}
+                    </button>
+                ))}
+            </div>
+
+            <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+                <div>
+                    <div className="mb-6 w-12 h-12 bg-stone-100 rounded-lg flex items-center justify-center text-stone-400">
+                        <svg
+                            width="22"
+                            height="22"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <polyline points="16 18 22 12 16 6" />
+                            <polyline points="8 6 2 12 8 18" />
+                        </svg>
+                    </div>
+                    <h3 className="text-2xl font-bold text-stone-900 font-mono">
+                        {tab.label}
+                    </h3>
+                    <p className="mt-4 text-stone-500 leading-relaxed">
+                        {tab.desc}
+                    </p>
+
+                    <div className="mt-6 space-y-2">
+                        {tab.flags.map(({ flag, desc }) => (
+                            <div
+                                key={flag}
+                                className="flex items-start gap-3 text-sm"
+                            >
+                                <code className="shrink-0 bg-stone-100 border border-stone-200 text-stone-700 px-2 py-0.5 rounded text-xs font-mono">
+                                    {flag}
+                                </code>
+                                <span className="text-stone-500">{desc}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <AnimatedTerminal code={tab.code} key={active} />
+            </div>
+        </div>
+    );
+}

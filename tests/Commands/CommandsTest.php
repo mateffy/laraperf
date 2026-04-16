@@ -44,7 +44,7 @@ it('perf:query returns summary for completed session', function () {
     $session['query_count'] = 2;
     $store->writeSession('query-test-session', $session);
 
-    $this->artisan(PerfQueryCommand::class, ['--session' => 'query-test-session', '--type' => 'summary'])
+    $this->artisan(PerfQueryCommand::class, ['--session' => 'query-test-session', '--summary' => true])
         ->assertSuccessful();
 });
 
@@ -74,7 +74,53 @@ it('perf:query returns N+1 candidates', function () {
     $session['query_count'] = count($session['queries']);
     $store->writeSession('n1-test-session', $session);
 
-    $this->artisan(PerfQueryCommand::class, ['--session' => 'n1-test-session', '--type' => 'n1'])
+    $this->artisan(PerfQueryCommand::class, ['--session' => 'n1-test-session', '--n1' => 3])
+        ->assertSuccessful();
+});
+
+it('perf:query returns combined output by default', function () {
+    $store = new PerfStore;
+    $normalizer = new QueryNormalizer;
+
+    $session = $store->emptySession('combined-test-session');
+    $session['status'] = 'completed';
+    $session['finished_at'] = now()->toIso8601String();
+
+    for ($i = 0; $i < 5; $i++) {
+        $session['queries'][] = [
+            'sql' => 'select * from "posts" where "user_id" = ? limit 1',
+            'raw_sql' => "select * from \"posts\" where \"user_id\" = {$i} limit 1",
+            'time_ms' => 150.0,
+            'connection' => 'testing',
+            'driver' => 'sqlite',
+            'operation' => 'SELECT',
+            'table' => 'posts',
+            'hash' => $normalizer->hash('select * from "posts" where "user_id" = ? limit 1'),
+            'batch_id' => 'batch-1',
+            'source' => [],
+            'captured_at' => now()->toIso8601String(),
+        ];
+    }
+    $session['query_count'] = count($session['queries']);
+    $store->writeSession('combined-test-session', $session);
+
+    $this->artisan(PerfQueryCommand::class, ['--session' => 'combined-test-session'])
+        ->assertSuccessful();
+});
+
+it('perf:query combines --summary --slow flags', function () {
+    $store = new PerfStore;
+
+    $session = $store->emptySession('multi-flag-session');
+    $session['status'] = 'completed';
+    $session['finished_at'] = now()->toIso8601String();
+    $session['queries'] = [
+        ['sql' => 'select * from "users" where "id" = ?', 'raw_sql' => 'select * from "users" where "id" = 1', 'time_ms' => 200.0, 'connection' => 'testing', 'driver' => 'sqlite', 'operation' => 'SELECT', 'table' => 'users', 'hash' => 'abc123', 'batch_id' => 'b1', 'source' => [], 'captured_at' => now()->toIso8601String()],
+    ];
+    $session['query_count'] = 1;
+    $store->writeSession('multi-flag-session', $session);
+
+    $this->artisan(PerfQueryCommand::class, ['--session' => 'multi-flag-session', '--summary' => true, '--slow' => 50])
         ->assertSuccessful();
 });
 

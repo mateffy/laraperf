@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Mateffy\Laraperf\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Mateffy\Laraperf\Analysis\QueryNormalizer;
 use Mateffy\Laraperf\QueryLogger;
@@ -31,12 +30,6 @@ use Mateffy\Laraperf\Storage\PerfStore;
  * Default window: 5 minutes.
  * --seconds=N : stop after N seconds (overrides default).
  * --forever   : never stop automatically (detached only — use perf:stop to end).
- *
- * SELF-TRIGGER
- * ────────────
- * --url=/path : after starting the listener, fire an internal HTTP GET request
- *               to that path and then capture whatever queries it generates.
- *               The URL is resolved via url($url).
  */
 class PerfWatchCommand extends Command
 {
@@ -44,7 +37,6 @@ class PerfWatchCommand extends Command
         {--sync            : Run in the foreground (blocking). Default is detached.}
         {--seconds=300     : How long to collect (seconds). Ignored when --forever is set.}
         {--forever         : Collect indefinitely (detached mode only). Use perf:stop to end.}
-        {--url=            : Fire a self-request to this URL after starting the listener.}
         {--tag=            : Optional label stored in the session metadata.}';
 
     protected $description = 'Start a performance capture session (detached by default). Use perf:stop to end detached sessions.';
@@ -101,8 +93,6 @@ class PerfWatchCommand extends Command
             pcntl_signal(SIGTERM, $finalize);
         }
 
-        $this->maybeSelfRequest();
-
         $start = microtime(true);
 
         while (true) {
@@ -139,7 +129,6 @@ class PerfWatchCommand extends Command
         $session_id = $this->newSessionId();
         $seconds = $this->resolveSeconds();
         $forever = (bool) $this->option('forever');
-        $url = $this->option('url') ?? '';
         $tag = $this->option('tag') ?? '';
 
         // Write the session stub immediately so perf:query can detect it.
@@ -152,7 +141,6 @@ class PerfWatchCommand extends Command
         $php = PHP_BINARY;
         $artisan = base_path('artisan');
         $durationArg = $forever ? '--forever' : "--seconds={$seconds}";
-        $urlArg = $url ? '--url='.escapeshellarg($url) : '';
         $tagArg = $tag ? '--tag='.escapeshellarg($tag) : '';
 
         $cmd = implode(' ', array_filter([
@@ -161,7 +149,6 @@ class PerfWatchCommand extends Command
             'perf:_worker',
             "--session={$session_id}",
             $durationArg,
-            $urlArg,
             $tagArg,
         ]));
 
@@ -215,22 +202,5 @@ class PerfWatchCommand extends Command
         $raw = $this->option('seconds');
 
         return max(1, (int) $raw);
-    }
-
-    protected function maybeSelfRequest(): void
-    {
-        $url = $this->option('url');
-
-        if (! $url) {
-            return;
-        }
-
-        try {
-            $full_url = url($url);
-            $this->line("Firing self-request → {$full_url}");
-            Http::timeout(30)->get($full_url);
-        } catch (\Throwable $e) {
-            $this->warn("Self-request failed: {$e->getMessage()}");
-        }
     }
 }

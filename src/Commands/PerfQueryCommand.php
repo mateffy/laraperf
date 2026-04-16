@@ -11,21 +11,22 @@ use Mateffy\Laraperf\Storage\PerfStore;
 /**
  * Read a captured perf session and output structured analysis.
  *
- * OUTPUT TYPES
- * ────────────
- * all     — every captured query, sorted by time descending
- * slow    — queries above --threshold (default 100ms)
- * n1      — probable N+1 patterns detected across request batches
- * summary — aggregate stats: total queries, total time, slowest, N+1 count
+ * OUTPUT FLAGS (combine freely)
+ * ─────────────────────────────
+ * --summary       aggregate stats: total queries, total time, slowest, N+1 count
+ * --slow=N        queries above N milliseconds
+ * --n1=N          probable N+1 patterns where same query repeats ≥ N times per batch
  *
+ * When no output flags are given, all three are included (summary, slow≥100ms, n1≥3).
  * All output is JSON by default, making it trivially parseable by LLM agents.
  */
 class PerfQueryCommand extends Command
 {
     protected $signature = 'perf:query
         {--session=last    : Session ID to read. Use "last" for the most recent completed session.}
-        {--type=summary    : Output type: all | slow | n1 | summary}
-        {--threshold=100   : Slow query threshold in milliseconds (used by "slow" type).}
+        {--summary         : Show aggregate session stats.}
+        {--slow=            : Show queries slower than this threshold (ms).}
+        {--n1=              : Show N+1 candidates where same query repeats ≥ N times per batch.}
         {--limit=50        : Maximum number of records to return.}
         {--batch=          : Filter to a specific request batch ID.}
         {--connection=     : Filter to a specific DB connection name.}
@@ -52,19 +53,43 @@ class PerfQueryCommand extends Command
         }
 
         $queries = $session['queries'] ?? [];
-        $type = $this->option('type');
-        $format = $this->option('format');
+        $wantsSummary = (bool) $this->option('summary');
+        $wantsSlow = $this->option('slow') !== null;
+        $wantsN1 = $this->option('n1') !== null;
+        $defaultMode = ! $wantsSummary && ! $wantsSlow && ! $wantsN1;
 
-        $output = match ($type) {
-            'all' => $this->outputAll($queries),
-            'slow' => $this->outputSlow($queries),
-            'n1' => $this->outputN1($queries),
-            'summary' => $this->outputSummary($session, $queries),
-            default => $this->outputSummary($session, $queries),
-        };
+        if ($defaultMode) {
+            $wantsSummary = true;
+            $wantsSlow = true;
+            $wantsN1 = true;
+        }
 
-        if ($format === 'table' && $type !== 'summary') {
-            $this->renderTable($output, $type);
+        $parts = [];
+
+        if ($wantsSummary) {
+            $parts['summary'] = $this->buildSummary($session, $queries);
+        }
+
+        if ($wantsSlow) {
+            $threshold = $this->option('slow') !== null
+                ? (float) $this->option('slow')
+                : 100.0;
+            $parts['slow'] = $this->buildSlow($queries, $threshold);
+        }
+
+        if ($wantsN1) {
+            $n1Threshold = $this->option('n1') !== null
+                ? (int) $this->option('n1')
+                : N1Detector::DEFAULT_THRESHOLD;
+            $parts['n1'] = $this->buildN1($queries, $n1Threshold);
+        }
+
+        $singleKey = count($parts) === 1 ? array_key_first($parts) : null;
+        $output = $singleKey ? $parts[$singleKey] : $parts;
+
+        if ($this->option('format') === 'table') {
+            $tableType = $singleKey ?? 'combined';
+            $this->renderTable($output, $tableType);
         } else {
             $this->line(json_encode($output, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         }
@@ -76,54 +101,13 @@ class PerfQueryCommand extends Command
     // Output builders
     // =========================================================================
 
-    protected function outputAll(array $queries): array
-    {
-        return [
-            'type' => 'all',
-            'count' => count($queries),
-            'queries' => $this->applyFiltersAndLimit($queries, sortBy: 'time_ms'),
-        ];
-    }
-
-    protected function outputSlow(array $queries): array
-    {
-        $threshold = (float) $this->option('threshold');
-
-        $slow = collect($queries)
-            ->filter(fn (array $q) => ($q['time_ms'] ?? 0) >= $threshold)
-            ->all();
-
-        return [
-            'type' => 'slow',
-            'threshold_ms' => $threshold,
-            'count' => count($slow),
-            'queries' => $this->applyFiltersAndLimit($slow, sortBy: 'time_ms'),
-        ];
-    }
-
-    protected function outputN1(array $queries): array
-    {
-        $filtered = $this->applyConnectionAndOperationFilters($queries);
-        $candidates = $this->n1_detector->detect($filtered);
-        $limit = (int) $this->option('limit');
-
-        return [
-            'type' => 'n1',
-            'candidate_count' => count($candidates),
-            'candidates' => array_slice($candidates, 0, $limit),
-        ];
-    }
-
-    protected function outputSummary(array $session, array $queries): array
+    protected function buildSummary(array $session, array $queries): array
     {
         $total_time = collect($queries)->sum('time_ms');
         $slowest = collect($queries)->sortByDesc('time_ms')->first();
         $n1_candidates = $this->n1_detector->detect($queries);
 
-        // Group by normalized hash for unique query count
         $unique_hashes = collect($queries)->pluck('hash')->unique()->count();
-
-        // Batch stats
         $batches = collect($queries)->groupBy('batch_id');
 
         return [
@@ -156,6 +140,34 @@ class PerfQueryCommand extends Command
         ];
     }
 
+    protected function buildSlow(array $queries, float $threshold): array
+    {
+        $slow = collect($queries)
+            ->filter(fn (array $q) => ($q['time_ms'] ?? 0) >= $threshold)
+            ->all();
+
+        return [
+            'type' => 'slow',
+            'threshold_ms' => $threshold,
+            'count' => count($slow),
+            'queries' => $this->applyFiltersAndLimit($slow, sortBy: 'time_ms'),
+        ];
+    }
+
+    protected function buildN1(array $queries, int $threshold): array
+    {
+        $filtered = $this->applyConnectionAndOperationFilters($queries);
+        $candidates = $this->n1_detector->detect($filtered, $threshold);
+        $limit = (int) $this->option('limit');
+
+        return [
+            'type' => 'n1',
+            'threshold' => $threshold,
+            'candidate_count' => count($candidates),
+            'candidates' => array_slice($candidates, 0, $limit),
+        ];
+    }
+
     // =========================================================================
     // Filtering helpers
     // =========================================================================
@@ -164,7 +176,6 @@ class PerfQueryCommand extends Command
     {
         $filtered = $this->applyConnectionAndOperationFilters($queries);
 
-        // Optional batch filter
         $batch = $this->option('batch');
 
         if ($batch) {
@@ -228,15 +239,43 @@ class PerfQueryCommand extends Command
             return;
         }
 
-        $rows = array_map(fn (array $q) => [
-            number_format($q['time_ms'] ?? 0, 2).'ms',
-            $q['connection'] ?? '',
-            $q['operation'] ?? '',
-            $q['table'] ?? '',
-            substr($q['raw_sql'] ?? $q['sql'] ?? '', 0, 100),
-            isset($q['source'][0]) ? ($q['source'][0]['file'] ?? '').':'.($q['source'][0]['line'] ?? '') : '',
-        ], $output['queries'] ?? []);
+        if ($type === 'slow') {
+            $rows = array_map(fn (array $q) => [
+                number_format($q['time_ms'] ?? 0, 2).'ms',
+                $q['connection'] ?? '',
+                $q['operation'] ?? '',
+                $q['table'] ?? '',
+                substr($q['raw_sql'] ?? $q['sql'] ?? '', 0, 100),
+                isset($q['source'][0]) ? ($q['source'][0]['file'] ?? '').':'.($q['source'][0]['line'] ?? '') : '',
+            ], $output['queries'] ?? []);
 
-        $this->table(['Time', 'Conn', 'Op', 'Table', 'SQL (truncated)', 'Source'], $rows);
+            $this->table(['Time', 'Conn', 'Op', 'Table', 'SQL (truncated)', 'Source'], $rows);
+
+            return;
+        }
+
+        if ($type === 'combined') {
+            $this->renderCombinedTable($output);
+
+            return;
+        }
+    }
+
+    protected function renderCombinedTable(array $output): void
+    {
+        if (isset($output['summary'])) {
+            $s = $output['summary'];
+            $this->info("Session: {$s['session_id']}  Queries: {$s['total_queries']}  Time: {$s['total_time_ms']}ms  N+1 candidates: {$s['n1_candidate_count']}");
+        }
+
+        if (isset($output['slow'])) {
+            $this->info("\nSlow queries (≥{$output['slow']['threshold_ms']}ms):");
+            $this->renderTable($output['slow'], 'slow');
+        }
+
+        if (isset($output['n1'])) {
+            $this->info("\nN+1 candidates (≥{$output['n1']['threshold']} repeats):");
+            $this->renderTable($output['n1'], 'n1');
+        }
     }
 }

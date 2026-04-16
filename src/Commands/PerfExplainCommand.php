@@ -27,8 +27,8 @@ class PerfExplainCommand extends Command
         {--sql=            : Raw SQL to explain (bindings already interpolated).}
         {--hash=           : 12-char hash from perf:query output — looks up the example_raw_sql automatically.}
         {--session=last    : Session to look up --hash from.}
-        {--connection=     : Laravel DB connection name to use. Default: config(perf.connection).}
-        {--db=             : Override the database name on the connection. Default: config(perf.db).}';
+        {--connection=     : Laravel DB connection name to use. Default: config(laraperf.connection).}
+        {--db=             : Override the database name on the connection. Default: config(laraperf.db).}';
 
     protected $description = 'Run EXPLAIN ANALYZE on a SQL query and return the query plan as JSON.';
 
@@ -50,9 +50,9 @@ class PerfExplainCommand extends Command
         }
 
         $connection = $this->option('connection')
-            ?: config('perf.connection', config('database.default', 'pgsql'));
+            ?: config('laraperf.connection', config('database.default', 'pgsql'));
 
-        $database = $this->option('db') ?: config('perf.db') ?: null;
+        $database = $this->option('db') ?: config('laraperf.db') ?: null;
 
         $label = $database ? "{$connection} (db={$database})" : $connection;
         $raw_output = $this->output->getOutput();

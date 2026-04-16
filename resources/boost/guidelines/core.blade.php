@@ -43,16 +43,12 @@ php artisan perf:stop
 php artisan perf:query
 </code-snippet>
 
-<code-snippet name="List all captured queries" lang="bash">
-php artisan perf:query --all
-</code-snippet>
-
 <code-snippet name="Show slow queries (>50ms)" lang="bash">
 php artisan perf:query --slow=50
 </code-snippet>
 
 <code-snippet name="Show N+1 candidates (threshold 3)" lang="bash">
-php artisan perf:query --n1 --threshold=3
+php artisan perf:query --n1=3
 </code-snippet>
 
 <code-snippet name="Run EXPLAIN ANALYZE on a query hash" lang="bash">

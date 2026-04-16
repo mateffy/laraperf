@@ -28,7 +28,6 @@ Start a capture session. Returns immediately by default (detached). The session 
 --sync              Run in the foreground. Ctrl+C or timeout ends it.
 --seconds=N         Window duration in seconds. Default: 300. Ignored with --forever.
 --forever           Keep session alive indefinitely (detached only).
---url=/path         After starting, fire an internal HTTP GET to this path and capture its queries.
 --tag=label         Arbitrary label stored in session metadata.
 ```
 
@@ -51,14 +50,6 @@ Blocks the terminal. Registers `SIGINT`/`SIGTERM` handlers to finalize the sessi
 php artisan perf:watch --sync --seconds=60
 ```
 
-**Self-request mode:**
-
-Useful when the agent wants to capture queries for a specific URL autonomously.
-
-```bash
-php artisan perf:watch --seconds=10 --url=/api/deals --sync
-```
-
 ### `perf:stop`
 
 Stop all running detached watchers. Sends `SIGTERM`, waits up to 2 seconds, then `SIGKILL` if unresponsive. Finalizes sessions and removes PID sentinels.
@@ -74,8 +65,9 @@ Read a completed session and output analysis as JSON to stdout. Status lines go 
 
 ```
 --session=last      Session ID, or "last" for the most recent completed session.
---type=summary      Output type: summary | all | slow | n1
---threshold=100     Slow query threshold in ms (used by --type=slow).
+--summary           Show aggregate session stats.
+--slow=N            Show queries slower than N milliseconds.
+--n1=N              Show N+1 candidates where same query repeats ≥ N times per batch.
 --limit=50          Max records returned.
 --batch=            Filter to a specific request batch ID.
 --connection=       Filter to a specific DB connection name.
@@ -83,7 +75,9 @@ Read a completed session and output analysis as JSON to stdout. Status lines go 
 --format=json       Output format: json (default) | table
 ```
 
-**`summary`** (default): aggregate stats + top N+1 candidates + slowest query.
+When no output flags are given, all three are included (summary, slow≥100ms, n1≥3). Flags can be combined freely.
+
+**Default** (no flags = summary + slow + n1):
 
 ```bash
 php artisan perf:query
@@ -91,48 +85,36 @@ php artisan perf:query
 
 ```json
 {
-  "type": "summary",
-  "session_id": "session-20260416-143201-xK9mQp",
-  "total_queries": 183,
-  "unique_query_templates": 12,
-  "total_time_ms": 847.3,
-  "avg_time_ms": 4.63,
-  "slowest_query_ms": 312.1,
-  "slowest_query_sql": "select * from \"crm:contacts\" where ...",
-  "slowest_query_source": { "file": "/app/Domains/CRM/...", "line": 84 },
-  "request_batch_count": 4,
-  "n1_candidate_count": 2,
-  "n1_candidates": [ ... ],
-  "slow_query_count_100ms": 3,
-  "slow_query_count_500ms": 0,
-  "operations": { "SELECT": 178, "INSERT": 5 }
+  "summary": { "type": "summary", "session_id": "...", "total_queries": 183, ... },
+  "slow": { "type": "slow", "threshold_ms": 100, "count": 3, "queries": [...] },
+  "n1": { "type": "n1", "threshold": 3, "candidate_count": 2, "candidates": [...] }
 }
 ```
 
-**`n1`**: N+1 candidates grouped by normalized SQL template × batch.
+**`--n1=3`**: N+1 candidates grouped by normalized SQL template × batch.
 
 ```bash
-php artisan perf:query --type=n1
+php artisan perf:query --n1=3
 ```
 
 Each candidate includes `count`, `total_time_ms`, `avg_time_ms`, `normalized_sql`, `table`, `batch_id`, `example_raw_sql`, `example_source` (app-frame stack trace), and up to 5 `example_instances`.
 
-**`slow`**: queries above `--threshold`.
+**`--slow=200`**: queries above 200ms.
 
 ```bash
-php artisan perf:query --type=slow --threshold=200
+php artisan perf:query --slow=200
 ```
 
-**`all`**: every captured query, sorted slowest first.
+**Combine outputs**:
 
 ```bash
-php artisan perf:query --type=all --limit=20
+php artisan perf:query --summary --slow=50 --n1=3
 ```
 
 **Table output** (human-readable, not for piping):
 
 ```bash
-php artisan perf:query --type=slow --format=table
+php artisan perf:query --slow=50 --format=table
 ```
 
 ### `perf:explain`
@@ -241,7 +223,7 @@ php artisan perf:query
 # → { "n1_candidate_count": 3, "slowest_query_ms": 890, ... }
 
 # 4. Investigate the worst N+1
-php artisan perf:query --type=n1 | jq '.[0]'
+php artisan perf:query --n1=3 | jq '.candidates[0]'
 # → { "count": 47, "table": "crm:contacts", "example_source": { "file": "...", "line": 84 } }
 
 # 5. Get the query plan
