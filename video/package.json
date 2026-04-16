@@ -1,0 +1,21 @@
+{
+  "name": "laraperf-video",
+  "version": "1.0.0",
+  "description": "laraperf README terminal animation video",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render LaraperfDemo out/laraperf-demo.mp4",
+    "still": "remotion still LaraperfDemo out/thumbnail.png"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.261",
+    "react": "^19",
+    "react-dom": "^19",
+    "remotion": "4.0.261"
+  },
+  "devDependencies": {
+    "@remotion/eslint-config": "4.0.261",
+    "@types/react": "^19",
+    "typescript": "^5"
+  }
+}

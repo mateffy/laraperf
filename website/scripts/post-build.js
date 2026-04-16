@@ -77,5 +77,13 @@ for (const post of posts) {
   console.log(`✓ Generated /blog/${post.slug}/index.html`)
 }
 
-console.log(`\n✅ Generated ${posts.length + 1} static pages`)
+// Copy skill.md as plaintext for agents
+const skillSource = path.join(__dirname, '../public/skill.md')
+const skillDest = path.join(DOCS_DIR, 'skill.md')
+if (fs.existsSync(skillSource)) {
+  fs.copyFileSync(skillSource, skillDest)
+  console.log('✓ Generated /skill.md')
+}
+
+console.log(`\n✅ Generated ${posts.length + 3} static pages`)
 console.log('📁 Output directory:', DOCS_DIR)
