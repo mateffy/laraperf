@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && bun run scripts/post-build.js",
+    "build": "vite build && bun run scripts/post-build.js && bun run scripts/prerender.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

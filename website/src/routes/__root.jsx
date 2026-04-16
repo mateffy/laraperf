@@ -1,6 +1,6 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router'
-import { Suspense } from 'react'
-import Dither from '@/components/Dither'
+import { Suspense, lazy } from 'react'
+const Dither = lazy(() => import('@/components/Dither'))
 
 function Nav() {
   const links = [

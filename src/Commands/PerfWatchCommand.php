@@ -153,32 +153,23 @@ class PerfWatchCommand extends Command
         ]));
 
         // Redirect stdout/stderr to a log file so the process doesn't die when
-        // the terminal is closed.
+        // the terminal is closed.  The worker is fully daemonized with nohup
+        // and backgrounded (&) so the parent artisan process returns
+        // immediately.  proc_open blocks on proc_close for the child's full
+        // lifetime, making it unsuitable for a detached spawn.
         $log = storage_path("perf/{$session_id}.worker.log");
-        $descriptors = [
-            0 => ['file', '/dev/null', 'r'],
-            1 => ['file', $log, 'w'],
-            2 => ['file', $log, 'a'],
-        ];
+        $fullCmd = "nohup {$cmd} >{$log} 2>>{$log} & echo $!";
 
-        $proc = proc_open($cmd, $descriptors, $pipes, base_path());
+        $output = trim(shell_exec($fullCmd) ?? '');
+        $pid = (int) $output;
 
-        if ($proc === false) {
+        if ($pid <= 0) {
             $this->error('Failed to spawn background watcher process.');
 
             return self::FAILURE;
         }
 
-        // Get the PID of the spawned process.
-        $status = proc_get_status($proc);
-        $pid = (int) $status['pid'];
-
-        // Detach — we no longer manage this process.
-        proc_close($proc);
-
-        if ($pid > 0) {
-            $this->store->writeWatcherPid($pid, $session_id);
-        }
+        $this->store->writeWatcherPid($pid, $session_id);
 
         $label = $forever ? 'forever' : "{$seconds}s";
         $this->info("perf:watch [detached] session={$session_id} pid={$pid} duration={$label}");

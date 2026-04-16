@@ -8,12 +8,6 @@ export default defineConfig({
   plugins: [
     TanStackRouterVite({ 
       target: 'react', 
-      autoCodeSplitting: true,
-      // Enable static site generation
-      ssg: {
-        // Enable SSG for all routes
-        routes: ['*'],
-      },
     }), 
     react(), 
     tailwindcss()
@@ -27,5 +21,9 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  ssr: {
+    noExternal: ['@tanstack/react-router'],
+    external: ['three', '@react-three/fiber', '@react-three/postprocessing', 'postprocessing'],
   },
 })

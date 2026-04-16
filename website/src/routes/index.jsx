@@ -1,5 +1,22 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from "react";
+import {
+    Code,
+    ArrowRight,
+    Check,
+    Clock,
+    BarChart3,
+    FileText,
+    CircleX,
+    Search,
+    Database,
+    CircleCheck,
+    Download,
+    Copy,
+    ShieldCheck,
+    Star,
+    Activity,
+} from "lucide-react";
 
 const HERO_LINES = [
     { type: "comment", content: "# 1. install the package" },
@@ -274,13 +291,115 @@ function AnimatedTerminal({ code }) {
     );
 }
 
+function PhpTerminal({ code, title }) {
+    const highlightLine = (line) => {
+        // comment lines — return early
+        const commentMatch = line.match(/^(\s*\/\/.*)$/);
+        if (commentMatch) {
+            return `<span class="text-stone-500">${commentMatch[1]}</span>`;
+        }
+
+        // First escape HTML entities
+        let result = line
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+
+        // Replace tokens with placeholders to avoid double-matching
+        const tokens = [];
+        const push = (html) => {
+            const i = tokens.length;
+            tokens.push(html);
+            return `\x00T${i}\x00`;
+        };
+
+        // Method calls: ->methodName — match after &gt; escaping
+        result = result.replace(/(-&gt;[\w]+)/g, (_, m) =>
+            push(`<span class="text-emerald-300">${m}</span>`)
+        );
+
+        // Variables: $name
+        result = result.replace(/(\$[\w]+)/g, (_, m) =>
+            push(`<span class="text-blue-300">${m}</span>`)
+        );
+
+        // Keywords
+        result = result.replace(/\b(use|function|fn|return|new)\b/g, (_, m) =>
+            push(`<span class="text-purple-400">${m}</span>`)
+        );
+
+        // Strings (single-quoted)
+        result = result.replace(/(&#39;[^&]*?&#39;|'[^']*')/g, (m) =>
+            push(`<span class="text-amber-300">${m}</span>`)
+        );
+
+        // Function/test/expect keywords (after other replacements)
+        result = result.replace(/\b(expect|test|measure|capture|timeline_mark|stop)\b/g, (_, m) =>
+            push(`<span class="text-yellow-200">${m}</span>`)
+        );
+
+        // Restore placeholders
+        result = result.replace(/\x00T(\d+)\x00/g, (_, i) => tokens[parseInt(i)]);
+
+        return result;
+    };
+
+    const lines = code.split("\n");
+
+    return (
+        <div className="bg-stone-950 rounded-xl p-1 shadow-2xl overflow-hidden">
+            <div className="bg-stone-900 px-4 py-2 flex items-center gap-2 border-b border-white/5">
+                <div className="flex gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
+                </div>
+                <span className="text-xs text-stone-500 font-mono ml-auto">
+                    {title}
+                </span>
+            </div>
+            <pre className="p-5 text-xs font-mono overflow-x-auto leading-6 whitespace-pre-wrap">
+                {lines.map((line, i) => (
+                    <div
+                        key={i}
+                        className="animate-fade-in-up"
+                        style={{ animationDelay: `${i * 35}ms`, animationFillMode: "both" }}
+                        dangerouslySetInnerHTML={{ __html: highlightLine(line) || "&nbsp;" }}
+                    />
+                ))}
+            </pre>
+        </div>
+    );
+}
+
+function MethodTable({ methods }) {
+    return (
+        <div className="mt-6 border border-stone-200 rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+                <tbody>
+                    {methods.map(({ method, desc }) => (
+                        <tr key={method} className="border-b border-stone-100 last:border-b-0">
+                            <td className="px-3 py-1.5 font-mono text-xs text-stone-800 bg-stone-50 whitespace-nowrap">
+                                {method}
+                            </td>
+                            <td className="px-3 py-1.5 text-stone-500">
+                                {desc}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
 function CommandTabs() {
     const [active, setActive] = useState("watch");
     const tab = TABS.find((t) => t.id === active);
 
     return (
         <div className="max-w-5xl mx-auto">
-            <div className="flex border-b border-stone-200 scrollbar-hide overflow-x-auto">
+            <div className="flex border-b border-stone-200 scrollbar-hide overflow-x-auto justify-center">
                 {TABS.map((t) => (
                     <button
                         key={t.id}
@@ -299,19 +418,7 @@ function CommandTabs() {
             <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
                 <div>
                     <div className="mb-6 w-12 h-12 bg-stone-100 rounded-lg flex items-center justify-center text-stone-400">
-                        <svg
-                            width="22"
-                            height="22"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        >
-                            <polyline points="16 18 22 12 16 6" />
-                            <polyline points="8 6 2 12 8 18" />
-                        </svg>
+                        <Code size={22} />
                     </div>
                     <h3 className="text-2xl font-bold text-stone-900 font-mono">
                         {tab.label}
@@ -386,19 +493,7 @@ function HomePage() {
                   className="h-12 px-8 bg-stone-100 text-stone-800 font-semibold  flex items-center gap-2 transition shadow-lg hover:bg-stone-700 hover:text-stone-100"
               >
                   Quick install
-                  <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                  >
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                      <polyline points="12 5 19 12 12 19" />
-                  </svg>
+                  <ArrowRight size={14} />
               </a>
           </div>
 
@@ -431,84 +526,24 @@ function HomePage() {
                   </p>
                   <ul className="mt-6 space-y-2 text-sm text-stone-500">
                       <li className="flex items-center gap-2">
-                          <svg
-                              width="14"
-                              height="14"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="text-emerald-600 shrink-0"
-                          >
-                              <polyline points="20 6 9 17 4 12" />
-                          </svg>
+<Check size={14} className="text-emerald-600 shrink-0" />
                           Every command exits immediately
                       </li>
                       <li className="flex items-center gap-2">
-                          <svg
-                              width="14"
-                              height="14"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="text-emerald-600 shrink-0"
-                          >
-                              <polyline points="20 6 9 17 4 12" />
-                          </svg>
+<Check size={14} className="text-emerald-600 shrink-0" />
                           All output is structured JSON to stdout
                       </li>
                       <li className="flex items-center gap-2">
-                          <svg
-                              width="14"
-                              height="14"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="text-emerald-600 shrink-0"
-                          >
-                              <polyline points="20 6 9 17 4 12" />
-                          </svg>
+<Check size={14} className="text-emerald-600 shrink-0" />
                           Status/errors go to stderr — safe to pipe
                       </li>
                       <li className="flex items-center gap-2">
-                          <svg
-                              width="14"
-                              height="14"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="text-emerald-600 shrink-0"
-                          >
-                              <polyline points="20 6 9 17 4 12" />
-                          </svg>
+<Check size={14} className="text-emerald-600 shrink-0" />
                           Hashes let agents reference queries across
                           commands
                       </li>
                       <li className="flex items-center gap-2">
-                          <svg
-                              width="14"
-                              height="14"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="text-emerald-600 shrink-0"
-                          >
-                              <polyline points="20 6 9 17 4 12" />
-                          </svg>
+<Check size={14} className="text-emerald-600 shrink-0" />
                           Stack traces filtered to{" "}
                           <code className="bg-stone-100 px-1 rounded text-stone-700 text-xs">
                               app/
@@ -521,164 +556,38 @@ function HomePage() {
               <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 divide-x divide-y divide-stone-800/30">
                   {[
                       {
-                          icon: (
-                              <svg
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                              >
-                                  <circle cx="12" cy="12" r="10" />
-                                  <polyline points="12 6 12 12 16 14" />
-                              </svg>
-                          ),
-                          title: "Capture",
+icon: <Clock size={24} />,
+                           title: "Capture",
                           desc: "Start a session and let it run. Captures every query automatically while your agent exercises the app.",
                       },
                       {
-                          icon: (
-                              <svg
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                              >
-                                  <line
-                                      x1="18"
-                                      y1="20"
-                                      x2="18"
-                                      y2="10"
-                                  />
-                                  <line
-                                      x1="12"
-                                      y1="20"
-                                      x2="12"
-                                      y2="4"
-                                  />
-                                  <line
-                                      x1="6"
-                                      y1="20"
-                                      x2="6"
-                                      y2="14"
-                                  />
-                              </svg>
-                          ),
-                          title: "Analyse",
+icon: <BarChart3 size={24} />,
+                           title: "Analyse",
                           desc: "Get a JSON summary with total queries, slow queries, and N+1 candidates with source file and line number.",
                       },
                       {
-                          icon: (
-                              <svg
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                              >
-                                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                                  <polyline points="14 2 14 8 20 8" />
-                                  <line
-                                      x1="16"
-                                      y1="13"
-                                      x2="8"
-                                      y2="13"
-                                  />
-                                  <line
-                                      x1="16"
-                                      y1="17"
-                                      x2="8"
-                                      y2="17"
-                                  />
-                              </svg>
-                          ),
-                          title: "Explain",
+icon: <FileText size={24} />,
+                           title: "Explain",
                           desc: "Run EXPLAIN ANALYZE on any query. Pass raw SQL or reference a hash from the query output.",
                       },
                       {
-                          icon: (
-                              <svg
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                              >
-                                  <circle cx="12" cy="12" r="10" />
-                                  <path
-                                      d="M8 12h8M12 8v8"
-                                      transform="rotate(45 12 12)"
-                                  />
-                              </svg>
-                          ),
-                          title: "Slow query detection",
+icon: <CircleX size={24} />,
+                           title: "Slow query detection",
                           desc: "Find queries exceeding your threshold. Returns execution time, SQL hash, and exact source location in your codebase.",
                       },
                       {
-                          icon: (
-                              <svg
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                              >
-                                  <circle cx="11" cy="11" r="8" />
-                                  <line
-                                      x1="21"
-                                      y1="21"
-                                      x2="16.65"
-                                      y2="16.65"
-                                  />
-                              </svg>
-                          ),
-                          title: "N+1 Detection",
+icon: <Search size={24} />,
+                           title: "N+1 Detection",
                           desc: "Identifies repeated queries that should be eager loaded. Groups identical SQL patterns and counts occurrences.",
                       },
                       {
-                          icon: (
-                              <svg
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                              >
-                                  <polyline points="16 18 22 12 16 6" />
-                                  <polyline points="8 6 2 12 8 18" />
-                              </svg>
-                          ),
-                          title: "Clean stack traces",
+icon: <Code size={24} />,
+                           title: "Clean stack traces",
                           desc: "Your agent only sees your app code. Vendor frames are filtered out so the source location points directly to your code.",
                       },
                       {
-                          icon: (
-                              <svg
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                              >
-                                  <ellipse
-                                      cx="12"
-                                      cy="5"
-                                      rx="9"
-                                      ry="3"
-                                  />
-                                  <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-                                  <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-                              </svg>
-                          ),
-                          title: "Multi-tenant",
+icon: <Database size={24} />,
+                           title: "Multi-tenant",
                           desc: "Override the database name at runtime. No config changes needed, works with any tenancy setup.",
                       },
                   ].map(({ icon, title, desc }) => (
@@ -806,20 +715,7 @@ function HomePage() {
           {...{ "x-data": "{ tab: 'watch' }" }}
       >
           <div className="text-center mb-16">
-              <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="mx-auto mb-4 text-stone-400"
-              >
-                  <polyline points="16 18 22 12 16 6" />
-                  <polyline points="8 6 2 12 8 18" />
-              </svg>
+<Code size={24} className="mx-auto mb-4 text-stone-400" />
               <h2 className="text-4xl font-bold text-stone-900 font-outfit">
                   CLI reference
               </h2>
@@ -838,20 +734,7 @@ function HomePage() {
       {/* ── PEST INTEGRATION ── */}
       <section className="py-24 px-4 md:px-12 border-b border-stone-200">
           <div className="text-center mb-16">
-              <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="mx-auto mb-4 text-stone-400"
-              >
-                  <path d="M9 11l3 3L22 4" />
-                  <path d="M21 12c0 7.778-4.777 12-9 12s-9-4.222-9-12 4.777-12 9-12 9 4.222 9 12z" />
-              </svg>
+<CircleCheck size={24} className="mx-auto mb-4 text-stone-400" />
               <h2 className="text-4xl font-bold text-stone-900 font-outfit">
                   Built-in Pest testing
               </h2>
@@ -860,70 +743,41 @@ function HomePage() {
               </p>
           </div>
 
-          <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-              {/* Left: declarative constraints */}
-              <div>
-                  <div className="mb-6 w-12 h-12 bg-stone-100 rounded-lg flex items-center justify-center text-stone-400">
-                      <svg
-                          width="22"
-                          height="22"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                      >
-                          <path d="M12 20h9" />
-                          <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
-                      </svg>
-                  </div>
-                  <h3 className="text-2xl font-bold text-stone-900 font-mono">
-                      Declarative constraints
-                  </h3>
-                  <p className="mt-4 text-stone-500 leading-relaxed">
-                      Chain constraints onto any Pest test. They're validated automatically after the test runs — no manual assertions needed.
-                  </p>
-
-                  <div className="mt-6 space-y-2">
-                      {[
+          <div className="max-w-5xl mx-auto space-y-20">
+              {/* Row 1: Declarative constraints — content left, code right */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                  <div>
+                      <h3 className="text-2xl font-bold text-stone-900 font-mono">
+                          Declarative constraints
+                      </h3>
+                      <p className="mt-4 text-stone-500 leading-relaxed">
+                          Chain constraints onto any Pest test. They're validated
+                          automatically after the test runs — no manual assertions needed.
+                      </p>
+                      <MethodTable methods={[
                           { method: "->maxQueryCount(10)", desc: "Max allowed queries" },
                           { method: "->maxDuration(500)", desc: "Max total duration in ms" },
                           { method: "->maxMemory('10M')", desc: "Max memory usage" },
                           { method: "->maxN1Candidates(0)", desc: "Max N+1 patterns" },
                           { method: "->noN1Patterns()", desc: "Require zero N+1 issues" },
                           { method: "->maxQueryDuration(100)", desc: "Max single query ms" },
-                      ].map(({ method, desc }) => (
-                          <div key={method} className="flex items-start gap-3 text-sm">
-                              <code className="shrink-0 bg-stone-100 border border-stone-200 text-stone-700 px-2 py-0.5 rounded text-xs font-mono">
-                                  {method}
-                              </code>
-                              <span className="text-stone-500">{desc}</span>
-                          </div>
-                      ))}
+                      ]} />
                   </div>
-              </div>
-
-              {/* Right: terminal */}
-              <div className="bg-stone-950 rounded-xl p-1 shadow-2xl overflow-hidden">
-                  <div className="bg-stone-900 px-4 py-2 flex items-center gap-2 border-b border-white/5">
-                      <div className="flex gap-1.5">
-                          <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
-                          <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
-                          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
-                      </div>
-                      <span className="text-xs text-stone-500 font-mono ml-auto">
-                          tests/Performance/UserListTest.php
-                      </span>
-                  </div>
-                  <pre className="p-5 text-xs font-mono overflow-x-auto leading-6 whitespace-pre-wrap">
-{`// Declarative — chain on any test
-test('user list has no N+1 queries')
+                  <PhpTerminal
+                      title="tests/Performance/UserListTest.php"
+                      code={`test('user list has no N+1 queries')
     ->maxQueryCount(10)
     ->noN1Patterns()
-    ->maxDuration(500);
+    ->maxDuration(500);`}
+                  />
+              </div>
 
-// Measure a callback directly
+{/* Row 2: measure() — code left, content right */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                  <PhpTerminal
+                      title="tests/Feature/DashboardTest.php"
+                      code={`use function Mateffy\\Laraperf\\Testing\\{measure};
+
 test('dashboard loads fast', function () {
     $result = measure(fn () =>
         User::with('posts')->paginate()
@@ -933,8 +787,63 @@ test('dashboard loads fast', function () {
         ->toBeLessThan(20);
 });
 
-// Fluent expectation API
-test('contacts page performance', function () {
+test('contact query performance', function () {
+    $result = measure(fn () =>
+        Contact::with('company')->get()
+    );
+
+    expect($result->durationMs())
+        ->toBeLessThan(100);
+});`}
+                  />
+                  <div>
+                      <h3 className="text-2xl font-bold text-stone-900 font-mono">
+                          measure()
+                      </h3>
+                      <p className="mt-4 text-stone-500 leading-relaxed">
+                          Wrap any callback with{" "}
+                          <code className="text-sm bg-stone-100 px-1.5 py-0.5 rounded text-stone-700">
+                              measure()
+                          </code>{" "}
+                          and get a full{" "}
+                          <code className="text-sm bg-stone-100 px-1.5 py-0.5 rounded text-stone-700">
+                              PerformanceResult
+                          </code>{" "}
+                          — duration, memory, query count, N+1 candidates, and timeline events. Works in tests, tinker, or anywhere in your app.
+                      </p>
+                      <MethodTable methods={[
+                          { method: "durationMs()", desc: "Total execution time in ms" },
+                          { method: 'peakMemoryHuman()', desc: 'Peak memory (e.g. "2.4 MB")' },
+                          { method: "queryCount()", desc: "Number of queries executed" },
+                          { method: "n1Candidates(3)", desc: "N+1 patterns detected" },
+                          { method: "slowQueries(100)", desc: "Queries above a threshold" },
+                          { method: "summary()", desc: "Quick overview array" },
+                      ]} />
+                  </div>
+</div>
+
+              {/* Row 3: Fluent expectations — content left, code right */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                  <div>
+                      <h3 className="text-2xl font-bold text-stone-900 font-mono">
+                          Fluent expectation API
+                      </h3>
+                      <p className="mt-4 text-stone-500 leading-relaxed">
+                          Chain assertions on duration, query count, N+1 detection, and more.
+                          Filter queries by table, operation, or connection before asserting.
+                      </p>
+                      <MethodTable methods={[
+                          { method: "->performance()->duration()", desc: "Assert on total duration" },
+                          { method: "->performance()->queries()->count()", desc: "Assert on query count" },
+                          { method: "->performance()->queries()->whereTable('users')", desc: "Filter before asserting" },
+                          { method: "->performance()->toHaveNoN1()", desc: "Zero N+1 patterns" },
+                          { method: "->performance()->toHaveNoSlowQueries(50)", desc: "No queries above 50ms" },
+                          { method: "->performance()->n1(5)", desc: "Custom N+1 threshold" },
+                      ]} />
+                  </div>
+                  <PhpTerminal
+                      title="tests/Feature/ContactsTest.php"
+                      code={`test('contacts page performance', function () {
     $result = measure(fn () =>
         Contact::with('company')->get()
     );
@@ -950,41 +859,59 @@ test('contacts page performance', function () {
         ->performance()
             ->toHaveNoSlowQueries(50);
 });`}
-                  </pre>
+                  />
               </div>
-          </div>
 
-          {/* Bottom row: measure() API */}
-          <div className="max-w-5xl mx-auto mt-16 grid grid-cols-1 sm:grid-cols-3 gap-px bg-stone-200">
-              {[
-                  {
-                      title: "measure()",
-                      desc: "Wrap any callback. Returns a PerformanceResult with duration, memory, queries, N+1 candidates, and timeline events.",
-                      code: "$result = measure(fn () =>\n    User::with('posts')->get()\n);",
-                  },
-                  {
-                      title: "capture() / stop()",
-                      desc: "Manual start/stop for finer control. Add timeline marks between phases to track where time is spent.",
-                      code: "$cap = capture();\ntimeline_mark('before-query');\nUser::all();\ntimeline_mark('after-query');\n$result = $cap->stop();",
-                  },
-                  {
-                      title: "PerformanceResult",
-                      desc: "Rich result DTO with methods for every metric: queryCount(), slowQueries(), n1Candidates(), tablesAccessed(), and more.",
-                      code: "$result->durationMs();\n$result->peakMemoryHuman();\n$result->queryCount();\n$result->n1Candidates(3);\n$result->summary();",
-                  },
-              ].map(({ title, desc, code }) => (
-                  <div key={title} className="bg-white p-6">
-                      <h4 className="text-sm font-bold text-stone-900 font-mono">
-                          {title}
-                      </h4>
-                      <p className="mt-2 text-sm text-stone-500 leading-relaxed">
-                          {desc}
+              {/* Row 4: capture/stop — code left, content right */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                  <PhpTerminal
+                      title="tests/Feature/ImportTest.php"
+                      code={`use function Mateffy\\Laraperf\\Testing\\{capture, timeline_mark};
+
+test('import progress tracking', function () {
+    $cap = capture();
+    timeline_mark('start');
+
+    $importer = new ContactImporter();
+    $importer->import($csv);
+
+    timeline_mark('imported');
+
+    $result = $cap->stop();
+
+    // Timeline marks let you measure phases
+    $importMs = $result->durationBetween('start', 'imported');
+    expect($importMs)->toBeLessThan(5000);
+});`}
+                  />
+                  <div>
+                      <h3 className="text-2xl font-bold text-stone-900 font-mono">
+                          capture() & timeline marks
+                      </h3>
+                      <p className="mt-4 text-stone-500 leading-relaxed">
+                          For finer control, start and stop capture manually. Drop{" "}
+                          <code className="text-sm bg-stone-100 px-1.5 py-0.5 rounded text-stone-700">
+                              timeline_mark()
+                          </code>{" "}
+                          between phases to measure specific steps — then query the deltas with{" "}
+                          <code className="text-sm bg-stone-100 px-1.5 py-0.5 rounded text-stone-700">
+                              durationBetween()
+                          </code>{" "}
+                          and{" "}
+                          <code className="text-sm bg-stone-100 px-1.5 py-0.5 rounded text-stone-700">
+                              memoryDelta()
+                          </code>
+                          .
                       </p>
-                      <div className="mt-4 bg-stone-950 rounded-lg p-3 text-xs font-mono text-stone-300 leading-5 whitespace-pre-wrap">
-                          {code}
-                      </div>
+                      <MethodTable methods={[
+                          { method: "capture()", desc: "Start a manual capture session" },
+                          { method: "timeline_mark('label')", desc: "Mark a point in the timeline" },
+                          { method: "$cap->stop()", desc: "Stop and get PerformanceResult" },
+                          { method: "durationBetween('a','b')", desc: "Time between two marks" },
+                          { method: "memoryDelta('a','b')", desc: "Memory change between marks" },
+                      ]} />
                   </div>
-              ))}
+              </div>
           </div>
       </section>
 
@@ -994,21 +921,7 @@ test('contacts page performance', function () {
           className="py-24 px-4 md:px-12 border-b border-stone-200 bg-stone-950/60"
       >
           <div className="text-center mb-16">
-              <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="mx-auto mb-4 text-emerald-400"
-              >
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
+<Download size={24} className="mx-auto mb-4 text-emerald-400" />
               <h2 className="text-4xl font-bold text-stone-50 font-outfit">
                   Installation
               </h2>
@@ -1039,35 +952,17 @@ test('contacts page performance', function () {
                               <code className="text-xs">
                                   composer require mateffy/laraperf
                               </code>
-                              <button
-                                  onClick={() =>
-                                      navigator.clipboard?.writeText(
-                                          "composer require mateffy/laraperf",
-                                      )
-                                  }
-                                  className="text-stone-500 hover:text-stone-300 transition shrink-0"
-                                  title="Copy"
-                              >
-                                  <svg
-                                      width="12"
-                                      height="12"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                  >
-                                      <rect
-                                          x="9"
-                                          y="9"
-                                          width="13"
-                                          height="13"
-                                          rx="2"
-                                      />
-                                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                                  </svg>
-                              </button>
+<button
+                                   onClick={() =>
+                                       navigator.clipboard?.writeText(
+                                           "composer require mateffy/laraperf",
+                                       )
+                                   }
+                                   className="text-stone-500 hover:text-stone-300 transition shrink-0"
+                                   title="Copy"
+                               >
+                                   <Copy size={12} />
+                               </button>
                           </div>
                       </div>
 
@@ -1104,34 +999,244 @@ test('contacts page performance', function () {
                       Let your agent do it
                   </h3>
                   <p className="text-emerald-200/80 text-sm mb-4 leading-relaxed">
-                      Copy this prompt and send it to your agent. It will fetch the skill and set everything up automatically.
+                      Install the skill permanently with the CLI, or paste a prompt for a one-shot setup.
+                  </p>
+                  <div className="bg-stone-950/60 rounded-lg p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2 mb-4">
+                      <code className="text-xs">npx skills add mateffy/laraperf</code>
+<button
+                           onClick={() =>
+                               navigator.clipboard?.writeText("npx skills add mateffy/laraperf")
+                           }
+                           className="shrink-0 text-stone-500 hover:text-stone-300 transition"
+                           title="Copy command"
+                       >
+                           <Copy size={12} />
+                       </button>
+                  </div>
+                  <p className="text-emerald-200/60 text-xs mb-4">
+                      Or paste this prompt for a quick one-shot:
                   </p>
                   <div className="relative">
                       <textarea
                           readOnly
                           value={`Fetch and read the laraperf skill from https://laraperf.dev/skill.md, then install the package in this Laravel project using composer require mateffy/laraperf --dev. Run a quick performance capture to verify it's working.`}
-                          className="w-full h-28 bg-emerald-900/50 border border-emerald-800 text-emerald-100 text-xs font-mono p-3 leading-relaxed resize-none focus:outline-none"
+                          className="w-full h-20 bg-emerald-900/50 border border-emerald-800 text-emerald-100 text-xs font-mono p-3 leading-relaxed resize-none focus:outline-none"
                       />
-                      <button
-                          onClick={() => {
-                              const text = `Fetch and read the laraperf skill from https://laraperf.dev/skill.md, then install the package in this Laravel project using composer require mateffy/laraperf --dev. Run a quick performance capture to verify it's working.`;
-                              navigator.clipboard?.writeText(text);
-                          }}
-                          className="absolute top-2 right-2 p-1.5 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 transition"
-                          title="Copy prompt"
-                      >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <rect x="9" y="9" width="13" height="13" rx="0" />
-                              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                          </svg>
-                      </button>
+<button
+                           onClick={() => {
+                               const text = `Fetch and read the laraperf skill from https://laraperf.dev/skill.md, then install the package in this Laravel project using composer require mateffy/laraperf --dev. Run a quick performance capture to verify it's working.`;
+                               navigator.clipboard?.writeText(text);
+                           }}
+                           className="absolute top-2 right-2 p-1.5 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 transition"
+                           title="Copy prompt"
+                       >
+                           <Copy size={14} />
+                       </button>
                   </div>
                   <div className="mt-4 flex items-center gap-2 text-xs text-emerald-400/60">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                          <path d="M9 12l2 2 4-4" />
-                      </svg>
-                      <span>Works with Claude Code, Cursor, and any MCP-enabled agent</span>
+<ShieldCheck size={12} />
+                      <span>Works with Claude Code, Cursor, Codex, and any MCP-enabled agent</span>
+                  </div>
+              </div>
+          </div>
+      </section>
+
+      {/* ── AGENT SKILL ── */}
+      <section className="py-24 px-4 md:px-12 border-b border-stone-200">
+          <div className="max-w-5xl mx-auto">
+              <div className="text-center mb-16">
+<Star size={24} className="mx-auto mb-4 text-stone-400" />
+                  <h2 className="text-4xl font-bold text-stone-900 font-outfit">
+                      Agent skill
+                  </h2>
+                  <p className="mt-4 text-stone-500 max-w-2xl mx-auto">
+                      laraperf ships a skill that teaches your agent the full
+                      capture-analyse-explain loop. Install it permanently or use
+                      it on-the-fly — one command either way.
+                  </p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+                  {/* Left: what the skill teaches */}
+                  <div className="space-y-8">
+                      <div>
+                          <h3 className="text-xl font-bold text-stone-900 font-outfit">
+                              What the skill teaches
+                          </h3>
+                          <p className="mt-3 text-stone-500 leading-relaxed">
+                              The{" "}
+                              <code className="text-sm bg-stone-100 px-1.5 py-0.5 rounded text-stone-700">
+                                  laraperf-profiling
+                              </code>{" "}
+                              skill is a markdown document that lives in the repo. It
+                              contains the complete workflow: which commands to run, how
+                              to parse their JSON output, and how to iterate from
+                              detection to a fix.
+                          </p>
+                          <div className="mt-6 space-y-3">
+                              {[
+                                  {
+                                      step: "1",
+                                      title: "Capture queries",
+                                      desc: "Start perf:watch, exercise the code path, collect the session",
+                                  },
+                                  {
+                                      step: "2",
+                                      title: "Detect issues",
+                                      desc: "Run perf:query to find N+1 patterns and slow queries with file:line sources",
+                                  },
+                                  {
+                                      step: "3",
+                                      title: "Analyse plans",
+                                      desc: "Run perf:explain on flagged queries to find missing indexes or seq scans",
+                                  },
+                                  {
+                                      step: "4",
+                                      title: "Fix and verify",
+                                      desc: "Apply the fix (eager load, index) and re-capture to confirm improvement",
+                                  },
+                              ].map(({ step, title, desc }) => (
+                                  <div
+                                      key={step}
+                                      className="flex items-start gap-3"
+                                  >
+                                      <span className="shrink-0 w-7 h-7 rounded-full bg-stone-100 border border-stone-200 text-stone-600 text-xs font-bold flex items-center justify-center">
+                                          {step}
+                                      </span>
+                                      <div>
+                                          <p className="text-sm font-semibold text-stone-800">
+                                              {title}
+                                          </p>
+                                          <p className="text-sm text-stone-500">
+                                              {desc}
+                                          </p>
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
+                  </div>
+
+                  {/* Right: install methods */}
+                  <div className="space-y-6">
+                      {/* Primary: npx skills add */}
+                      <div className="bg-stone-950 rounded-xl p-6">
+                          <div className="flex items-center gap-2 mb-4">
+                              <span className="bg-emerald-600 text-white text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                                  Recommended
+                              </span>
+                              <h4 className="text-sm font-bold text-stone-50 font-outfit">
+                                  Install via skills CLI
+                              </h4>
+                          </div>
+                          <p className="text-sm text-stone-400 mb-4 leading-relaxed">
+                              Permanently adds the skill to your project so every agent
+                              session has it. The skill is copied into your agent's
+                              skills directory and tracked in{" "}
+                              <code className="text-xs bg-stone-800 px-1 rounded text-stone-300">
+                                  skills-lock.json
+                              </code>
+                              .
+                          </p>
+                          <div className="bg-stone-900 rounded-lg p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2">
+                              <code className="text-xs">
+                                  npx skills add mateffy/laraperf
+                              </code>
+<button
+                                   onClick={() =>
+                                       navigator.clipboard?.writeText(
+                                           "npx skills add mateffy/laraperf"
+                                       )
+                                   }
+                                   className="shrink-0 text-stone-500 hover:text-stone-300 transition"
+                                   title="Copy command"
+                               >
+                                   <Copy size={12} />
+                               </button>
+                          </div>
+                          <div className="mt-4 flex flex-wrap gap-2">
+                              {[
+                                  { flag: "-g", desc: "Install globally for all projects" },
+                                  { flag: "-a claude-code", desc: "Target a specific agent" },
+                                  { flag: "-y", desc: "Skip confirmation prompts" },
+                              ].map(({ flag, desc }) => (
+                                  <div key={flag} className="flex items-center gap-1.5 text-xs text-stone-400">
+                                      <code className="bg-stone-800 px-1.5 py-0.5 rounded text-stone-300">{flag}</code>
+                                      <span>{desc}</span>
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
+
+                      {/* Secondary: prompt */}
+                      <div className="bg-emerald-950 rounded-xl p-6">
+                          <h4 className="text-sm font-bold text-white mb-3 font-outfit">
+                              Or paste a one-shot prompt
+                          </h4>
+                          <p className="text-sm text-emerald-200/80 mb-4 leading-relaxed">
+                              No install needed. Send this prompt to your agent — it
+                              will fetch the skill and set everything up.
+                          </p>
+                          <div className="relative">
+                              <textarea
+                                  readOnly
+                                  value={`Fetch and read the laraperf skill from https://laraperf.dev/skill.md, then install the package in this Laravel project using composer require mateffy/laraperf --dev. Run a quick performance capture to verify it's working.`}
+                                  className="w-full h-20 bg-emerald-900/50 border border-emerald-800 text-emerald-100 text-xs font-mono p-3 leading-relaxed resize-none focus:outline-none rounded-lg"
+                              />
+<button
+                                   onClick={() => {
+                                       navigator.clipboard?.writeText(
+                                           `Fetch and read the laraperf skill from https://laraperf.dev/skill.md, then install the package in this Laravel project using composer require mateffy/laraperf --dev. Run a quick performance capture to verify it's working.`
+                                       );
+                                   }}
+                                   className="absolute top-2 right-2 p-1.5 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 transition rounded"
+                                   title="Copy prompt"
+                               >
+                                   <Copy size={14} />
+                               </button>
+                          </div>
+                      </div>
+
+                      {/* Compatible agents */}
+                      <div className="bg-stone-50 border border-stone-200 rounded-xl p-6">
+                          <h4 className="text-sm font-bold text-stone-900 mb-4 font-outfit">
+                              Compatible agents
+                          </h4>
+                          <div className="space-y-3">
+                              {[
+                                  {
+                                      name: "Claude Code",
+                                      desc: "Full support via npx skills or prompt",
+                                  },
+                                  {
+                                      name: "Cursor",
+                                      desc: "Install to .cursorrules or paste in composer",
+                                  },
+                                  {
+                                      name: "Codex / OpenAI",
+                                      desc: "Add to AGENTS.md or paste as a task prompt",
+                                  },
+                                  {
+                                      name: "OpenCode",
+                                      desc: "Install to .agents/skills/ via npx skills",
+                                  },
+                                  {
+                                      name: "Any agent",
+                                      desc: "Fetch skill.md directly — it's plain markdown, no auth needed",
+                                  },
+                              ].map(({ name, desc }) => (
+                                  <div key={name} className="flex items-start gap-3 text-sm">
+                                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5"></span>
+                                      <div>
+                                          <span className="font-semibold text-stone-800">
+                                              {name}
+                                          </span>
+                                          <p className="text-stone-500">{desc}</p>
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
                   </div>
               </div>
           </div>
@@ -1141,21 +1246,9 @@ test('contacts page performance', function () {
       <footer className="pt-16 pb-10 px-4 md:px-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 pb-12">
               <div className="lg:col-span-2">
-                  <div className="flex items-center gap-2 text-emerald-900 font-bold text-xl mb-4 font-outfit">
-                      <svg
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-emerald-600"
-                      >
-                          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                      </svg>
-                      laraperf
+<div className="flex items-center gap-2 text-emerald-900 font-bold text-xl mb-4 font-outfit">
+                       <Activity size={18} className="text-emerald-600" />
+                       laraperf
                   </div>
                   <p className="text-stone-500 text-sm max-w-xs leading-relaxed">
                       A{" "}
@@ -1166,21 +1259,21 @@ test('contacts page performance', function () {
                       License.
                   </p>
                   <div className="flex gap-4 mt-6 text-stone-400">
-                      <a
-                          href="https://github.com/mateffy/laraperf"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hover:text-emerald-600 transition"
-                      >
-                          <svg
-                              width="18"
-                              height="18"
-                              viewBox="0 0 24 24"
-                              fill="currentColor"
-                          >
-                              <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
-                          </svg>
-                      </a>
+<a
+                           href="https://github.com/mateffy/laraperf"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="hover:text-emerald-600 transition"
+                       >
+                           <svg
+                               width="18"
+                               height="18"
+                               viewBox="0 0 24 24"
+                               fill="currentColor"
+                           >
+                               <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                           </svg>
+                       </a>
                   </div>
               </div>
               <div>
