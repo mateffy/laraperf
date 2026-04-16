@@ -1,4 +1,4 @@
-<img src="./resources/images/terminal.webp" alt="Terminal screenshot" width="100%" align="center" />
+<img src="./resources/images/header.webp" alt="Terminal screenshot" width="100%" align="center" />
 
 # laraperf
 
