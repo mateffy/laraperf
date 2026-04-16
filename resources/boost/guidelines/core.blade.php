@@ -2,7 +2,7 @@
 
 Laraperf is a performance analysis toolkit for Laravel, purpose-built for LLM coding agents. It captures SQL queries transparently, detects N+1 patterns, and runs EXPLAIN ANALYZE — all via short-lived Artisan commands that output structured JSON.
 
-- IMPORTANT: Always use `perf:` commands rather than manual DB debugging when profiling queries or investigating N+1 issues.
+- IMPORTANT: Prefer `perf:` commands rather than manual DB debugging when profiling queries or investigating N+1 issues.
 - All command output is JSON on stdout; human-readable status messages go to stderr.
 
 ### Installation
@@ -21,6 +21,10 @@ Published at `config/laraperf.php`. Set `connection` and `database` overrides fo
 @verbatim
 <code-snippet name="Start a profiling session (detached, 5 min default)" lang="bash">
 php artisan perf:watch
+</code-snippet>
+
+<code-snippet name="Start a profiling session (detached, 20 sec)" lang="bash">
+php artisan perf:watch --seconds=20
 </code-snippet>
 
 <code-snippet name="Start a profiling session (synchronous, blocks terminal)" lang="bash">
@@ -70,7 +74,7 @@ php artisan perf:clear --force
 
 ### Multi-Tenant Usage
 
-Under PHP-FPM (Herd, Octane), the ServiceProvider auto-detects an active session on every request boot. No tenancy package dependency is needed — use `--db` to override the database name at runtime:
+No tenancy package dependency is needed — use `--db` to override the database name at runtime:
 
 ```bash
 php artisan perf:explain --hash=abc123 --connection=tenant --db=tenant_acme
