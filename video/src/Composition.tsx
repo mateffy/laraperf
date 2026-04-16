@@ -123,6 +123,7 @@ const SceneLabel: React.FC<{
         </div>
         <div
           style={{
+            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
             fontSize: 17,
             color: "#a8a29e",
             lineHeight: 1.3,

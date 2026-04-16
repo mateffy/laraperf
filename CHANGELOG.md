@@ -1,3 +1,5 @@
 # Changelog
 
-All notable changes to `laraperf` will be documented in this file.
+## 1.2.0
+
+- improved watcher startup performance
