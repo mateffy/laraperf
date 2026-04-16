@@ -22,7 +22,7 @@ export default defineConfig({
     outDir: '../docs',
     emptyOutDir: true,
   },
-  base: './',
+  base: '/',
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

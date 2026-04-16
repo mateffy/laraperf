@@ -2,21 +2,6 @@ import type { TerminalScene } from "./components/Terminal";
 
 export const SCENES: TerminalScene[] = [
   {
-    title: "bash — install",
-    lines: [
-      { type: "comment", content: "# Install laraperf as a dev dependency" },
-      { type: "command", content: "composer require mateffy/laraperf --dev" },
-      {
-        type: "output",
-        content: "Using version ^1.0 for mateffy/laraperf",
-      },
-      {
-        type: "output",
-        content: "✓ Package installed successfully",
-      },
-    ],
-  },
-  {
     title: "bash — perf:watch",
     lines: [
       { type: "comment", content: "# Start a 2-minute capture session" },
@@ -26,25 +11,34 @@ export const SCENES: TerminalScene[] = [
       },
       {
         type: "output",
-        content: "✓ session=session-20260416-143201-xK9mQp pid=47821 duration=120s",
+        content: "perf:watch [detached] session=session-20260416-143201-xK9mQp pid=47821 duration=120s",
       },
       {
         type: "comment",
-        content: "# → Queries are captured automatically as you use the app",
+        content: "# → Exercise the app — queries are captured automatically",
       },
     ],
   },
   {
     title: "bash — perf:query",
     lines: [
-      { type: "comment", content: "# Analyse captured queries" },
+      { type: "comment", content: "# Check summary" },
       {
         type: "command",
-        content: "php artisan perf:query",
+        content: "php artisan perf:query --summary",
       },
       {
         type: "json",
-        content: '{ "n1_candidate_count": 3, "slowest_query_ms": 890, "total_queries": 183 }',
+        content: [
+          "{",
+          '  "type": "summary",',
+          '  "session_id": "session-20260416-143201-xK9mQp",',
+          '  "total_queries": 183,',
+          '  "slowest_query_ms": 890.123,',
+          '  "n1_candidate_count": 2,',
+          '  "request_batch_count": 4',
+          "}",
+        ].join("\n"),
       },
     ],
   },
@@ -54,18 +48,26 @@ export const SCENES: TerminalScene[] = [
       { type: "comment", content: "# Find the worst N+1 candidate" },
       {
         type: "command",
-        content: "php artisan perf:query --n1=3 | jq '.n1.candidates[0]'",
+        content: "php artisan perf:query --n1=3",
       },
       {
         type: "json",
         content: [
           "{",
-          '  "count": 47,',
-          '  "table": "contacts",',
-          '  "normalized_sql": "select * from \\"contacts\\" where \\"id\\" = ?",',
-          '  "example_source": [',
-          '    { "file": "app/Deals/Resources/ListDeals.php", "line": 47 }',
-          "  ]",
+          '  "type": "n1",',
+          '  "threshold": 3,',
+          '  "candidate_count": 2,',
+          '  "candidates": [{',
+          '    "hash": "a1b2c3d4e5f6",',
+          '    "normalized_sql": "select * from contacts where id = ?",',
+          '    "table": "contacts",',
+          '    "count": 47,',
+          '    "total_time_ms": 312.45,',
+          '    "example_source": [{',
+          '      "file": "app/Deals/Resources/ListDeals.php",',
+          '      "line": 47',
+          "    }]",
+          "  }]",
           "}",
         ].join("\n"),
       },
@@ -77,22 +79,31 @@ export const SCENES: TerminalScene[] = [
       { type: "comment", content: "# Run EXPLAIN ANALYZE on the slow query" },
       {
         type: "command",
-        content: "php artisan perf:explain --hash=a1b2c3d4e5f6 | jq '.[0].Plan'",
+        content: "php artisan perf:explain --hash=a1b2c3d4e5f6",
       },
       {
         type: "json",
         content: [
           "{",
-          '  "Node Type": "Seq Scan",',
-          '  "Relation Name": "contacts",',
-          '  "Actual Rows": 4721,',
-          '  "Total Cost": 8432.11',
+          '  "driver": "pgsql",',
+          '  "connection": "tenant",',
+          '  "plan": [{',
+          '    "Plan": {',
+          '      "Node Type": "Seq Scan",',
+          '      "Relation Name": "contacts",',
+          '      "Actual Rows": 4721,',
+          '      "Total Cost": 8432.11,',
+          '      "Execution Time": 12.847',
+          "    }",
+          "  }],",
+          '  "error": null',
           "}",
         ].join("\n"),
       },
+      { type: "blank", content: "" },
       {
         type: "comment",
-        content: "# → Seq Scan = missing index. Agent adds migration & re-runs.",
+        content: "# → Seq Scan on 4721 rows — missing index!",
       },
     ],
   },
@@ -114,10 +125,10 @@ export const SCENES: TerminalScene[] = [
 
 export const FPS = 30;
 
-export const SCENE_DURATIONS: number[] = [120, 150, 120, 180, 210, 90];
+export const SCENE_DURATIONS: number[] = [140, 150, 200, 220, 90];
 
-export const TRANSITION_FRAMES = 12;
+export const TRANSITION_FRAMES = 10;
 
 export const TOTAL_DURATION = SCENE_DURATIONS.reduce((a, b) => a + b, 0);
 
-export const FIXED_TERMINAL_HEIGHT = 340;
+export const FIXED_TERMINAL_HEIGHT = 360;

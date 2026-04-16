@@ -2,7 +2,6 @@ import React from "react";
 import {
   interpolate,
   useCurrentFrame,
-  useVideoConfig,
 } from "remotion";
 
 export type TerminalLineType = "command" | "output" | "json" | "comment" | "blank";
@@ -19,75 +18,79 @@ export type TerminalScene = {
 };
 
 const COLORS = {
-  bg: "#0c0a09",
-  toolbarBg: "#1c1917",
-  border: "rgba(255,255,255,0.05)",
-  prompt: "#34d399",
-  output: "#6ee7b7",
-  comment: "#78716c",
+  bg: "#141210",
+  toolbarBg: "#1e1b18",
+  border: "rgba(255,255,255,0.06)",
+  prompt: "#4ade80",
+  output: "#86efac",
+  comment: "#a8a29e",
+  jsonBrace: "#d6d3d1",
   jsonKey: "#93c5fd",
   jsonNumber: "#fbbf24",
   jsonString: "#86efac",
-  jsonBool: "#c4b5fd",
-  jsonNull: "#c4b5fd",
-  text: "#e7e5e4",
-  dot: { red: "#f87171", yellow: "#fbbf24", green: "#34d399" },
+  jsonPunctuation: "#d6d3d1",
+  text: "#f5f5f4",
+  dot: { red: "#f87171", yellow: "#fbbf24", green: "#4ade80" },
 };
 
 function highlightJson(jsonStr: string): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
-  const regex = /("(?:[^"\\]|\\.)*")\s*:\s*|("(?:[^"\\]|\\.)*")|(\d+(?:\.\d+)?)/g;
+  const regex = /("(?:[^"\\]|\\.)*")\s*:|("(?:[^"\\]|\\.)*")|(\d+(?:\.\d+)?)/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
-  let keyIndex = 0;
+  let idx = 0;
 
   while ((match = regex.exec(jsonStr)) !== null) {
     if (match.index > lastIndex) {
-      parts.push(
-        <span key={`t-${keyIndex}`}>
-          {jsonStr.slice(lastIndex, match.index)}
-        </span>,
-      );
+      const between = jsonStr.slice(lastIndex, match.index);
+      for (const ch of between) {
+        if (ch === "{" || ch === "}" || ch === "[" || ch === "]") {
+          parts.push(<span key={`b-${idx}`} style={{ color: COLORS.jsonBrace, fontWeight: 600 }}>{ch}</span>);
+        } else if (ch === ":" || ch === ",") {
+          parts.push(<span key={`p-${idx}`} style={{ color: COLORS.jsonPunctuation }}>{ch}</span>);
+        } else {
+          parts.push(<span key={`w-${idx}`} style={{ color: COLORS.jsonPunctuation }}>{ch}</span>);
+        }
+        idx++;
+      }
     }
 
     if (match[1]) {
       parts.push(
-        <span key={`k-${keyIndex}`} style={{ color: COLORS.jsonKey }}>
+        <span key={`k-${idx}`} style={{ color: COLORS.jsonKey }}>
           {match[1]}
         </span>,
       );
-      parts.push(
-        <span key={`c-${keyIndex}`}>{jsonStr.slice(match[1].length + match.index, match.index + match[0].length)}</span>,
-      );
     } else if (match[2]) {
-      const isBool = match[2] === '"true"' || match[2] === '"false"';
-      if (isBool) {
-        parts.push(
-          <span key={`s-${keyIndex}`} style={{ color: COLORS.jsonBool }}>
-            {match[2]}
-          </span>,
-        );
-      } else {
-        parts.push(
-          <span key={`s-${keyIndex}`} style={{ color: COLORS.jsonString }}>
-            {match[2]}
-          </span>,
-        );
-      }
+      parts.push(
+        <span key={`s-${idx}`} style={{ color: COLORS.jsonString }}>
+          {match[2]}
+        </span>,
+      );
     } else if (match[3]) {
       parts.push(
-        <span key={`n-${keyIndex}`} style={{ color: COLORS.jsonNumber }}>
+        <span key={`n-${idx}`} style={{ color: COLORS.jsonNumber }}>
           {match[3]}
         </span>,
       );
     }
 
     lastIndex = match.index + match[0].length;
-    keyIndex++;
+    idx++;
   }
 
   if (lastIndex < jsonStr.length) {
-    parts.push(<span key={`end`}>{jsonStr.slice(lastIndex)}</span>);
+    const rest = jsonStr.slice(lastIndex);
+    for (const ch of rest) {
+      if (ch === "{" || ch === "}" || ch === "[" || ch === "]") {
+        parts.push(<span key={`be-${idx}`} style={{ color: COLORS.jsonBrace, fontWeight: 600 }}>{ch}</span>);
+      } else if (ch === ":" || ch === ",") {
+        parts.push(<span key={`pe-${idx}`} style={{ color: COLORS.jsonPunctuation }}>{ch}</span>);
+      } else {
+        parts.push(<span key={`we-${idx}`} style={{ color: COLORS.jsonPunctuation }}>{ch}</span>);
+      }
+      idx++;
+    }
   }
 
   return parts;
@@ -103,13 +106,13 @@ function renderLine(line: TerminalLine): React.ReactNode {
       const prompt = line.prompt ?? "$";
       return (
         <>
-          <span style={{ color: COLORS.prompt }}>{prompt}</span>
+          <span style={{ color: COLORS.prompt, fontWeight: 600 }}>{prompt}</span>
           <span style={{ color: COLORS.text }}> {line.content}</span>
         </>
       );
     }
     case "output":
-      return <span style={{ color: COLORS.output }}>{line.content}</span>;
+      return <span style={{ color: COLORS.output, fontWeight: 500 }}>{line.content}</span>;
     case "json":
       return <>{highlightJson(line.content)}</>;
     default:
@@ -117,10 +120,10 @@ function renderLine(line: TerminalLine): React.ReactNode {
   }
 }
 
-const CHAR_FRAMES = 1.2;
+const CHAR_FRAMES = 1.1;
 const CURSOR_BLINK = 24;
-const LINE_REVEAL_FRAMES = 3;
-const FONT_SIZE = 18;
+const LINE_REVEAL_FRAMES = 4;
+const FONT_SIZE = 20;
 const LINE_HEIGHT = 1.55;
 const LINE_HEIGHT_PX = FONT_SIZE * LINE_HEIGHT;
 
@@ -155,25 +158,6 @@ export const Terminal: React.FC<TerminalProps> = ({
 
     const lineStart = globalFrameOffset;
 
-    if (!typingEnabled) {
-      const lineVisible = frame >= lineStart;
-      if (!lineVisible) break;
-
-      renderedLines.push(
-        <div key={i} style={{ minHeight: `${LINE_HEIGHT_PX}px`, lineHeight: `${LINE_HEIGHT}` }}>
-          {i === lines.length - 1 && showCursor && line.type === "command" ? (
-            <>
-              {renderLine(line)}
-              <Cursor frame={frame} />
-            </>
-          ) : (
-            renderLine(line)
-          )}
-        </div>,
-      );
-      continue;
-    }
-
     if (isCommand) {
       const typingFrames = Math.ceil(textLen * CHAR_FRAMES);
       const visibleChars = Math.min(
@@ -187,11 +171,11 @@ export const Terminal: React.FC<TerminalProps> = ({
       const typedContent = line.content.slice(0, visibleChars);
       const prompt = line.prompt ?? "$";
 
-      const showThisCursor = showCursor && isLastCmd && visibleChars < textLen + 8;
+      const showThisCursor = showCursor && isLastCmd && visibleChars < textLen + 12;
 
       renderedLines.push(
         <div key={i} style={{ minHeight: `${LINE_HEIGHT_PX}px`, lineHeight: `${LINE_HEIGHT}` }}>
-          <span style={{ color: COLORS.prompt }}>{prompt}</span>
+          <span style={{ color: COLORS.prompt, fontWeight: 600 }}>{prompt}</span>
           <span style={{ color: COLORS.text }}> {typedContent}</span>
           {showThisCursor && <Cursor frame={frame} />}
         </div>,
@@ -231,18 +215,19 @@ export const Terminal: React.FC<TerminalProps> = ({
     }
   }
 
+  const toolbarHeight = 44;
   const bodyStyle: React.CSSProperties = fixedHeight
     ? {
-        height: fixedHeight - 42,
+        height: fixedHeight - toolbarHeight,
         overflow: "hidden",
         padding: "16px 24px",
-        fontFamily: "'SF Mono', 'Fira Code', 'Cascadia Code', monospace",
+        fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', monospace",
         fontSize: FONT_SIZE,
         whiteSpace: "pre-wrap",
       }
     : {
         padding: "16px 24px",
-        fontFamily: "'SF Mono', 'Fira Code', 'Cascadia Code', monospace",
+        fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', monospace",
         fontSize: FONT_SIZE,
         whiteSpace: "pre-wrap",
         overflow: "hidden",
@@ -252,10 +237,10 @@ export const Terminal: React.FC<TerminalProps> = ({
     <div
       style={{
         backgroundColor: COLORS.bg,
-        borderRadius: 12,
+        borderRadius: 14,
         overflow: "hidden",
         boxShadow:
-          "0 25px 50px -12px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)",
+          "0 25px 60px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06)",
         width: "100%",
         ...containerStyle,
       }}
@@ -263,34 +248,36 @@ export const Terminal: React.FC<TerminalProps> = ({
       <div
         style={{
           backgroundColor: COLORS.toolbarBg,
-          padding: "10px 16px",
+          padding: "12px 16px",
           display: "flex",
           alignItems: "center",
           gap: 8,
           borderBottom: `1px solid ${COLORS.border}`,
+          height: toolbarHeight,
+          boxSizing: "border-box",
         }}
       >
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 7 }}>
           <div
             style={{
-              width: 12,
-              height: 12,
+              width: 13,
+              height: 13,
               borderRadius: "50%",
               backgroundColor: COLORS.dot.red,
             }}
           />
           <div
             style={{
-              width: 12,
-              height: 12,
+              width: 13,
+              height: 13,
               borderRadius: "50%",
               backgroundColor: COLORS.dot.yellow,
             }}
           />
           <div
             style={{
-              width: 12,
-              height: 12,
+              width: 13,
+              height: 13,
               borderRadius: "50%",
               backgroundColor: COLORS.dot.green,
             }}
@@ -300,7 +287,7 @@ export const Terminal: React.FC<TerminalProps> = ({
           style={{
             color: COLORS.comment,
             fontSize: 14,
-            fontFamily: "monospace",
+            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
             marginLeft: "auto",
             marginRight: "auto",
           }}

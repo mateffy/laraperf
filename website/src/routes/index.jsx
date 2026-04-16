@@ -835,6 +835,159 @@ function HomePage() {
           <CommandTabs />
       </section>
 
+      {/* ── PEST INTEGRATION ── */}
+      <section className="py-24 px-4 md:px-12 border-b border-stone-200">
+          <div className="text-center mb-16">
+              <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="mx-auto mb-4 text-stone-400"
+              >
+                  <path d="M9 11l3 3L22 4" />
+                  <path d="M21 12c0 7.778-4.777 12-9 12s-9-4.222-9-12 4.777-12 9-12 9 4.222 9 12z" />
+              </svg>
+              <h2 className="text-4xl font-bold text-stone-900 font-outfit">
+                  Built-in Pest testing
+              </h2>
+              <p className="mt-4 text-stone-500 max-w-2xl mx-auto">
+                  Write performance assertions directly in your test suite. Measure queries, memory, and N+1 patterns with a fluent API — no CLI needed.
+              </p>
+          </div>
+
+          <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+              {/* Left: declarative constraints */}
+              <div>
+                  <div className="mb-6 w-12 h-12 bg-stone-100 rounded-lg flex items-center justify-center text-stone-400">
+                      <svg
+                          width="22"
+                          height="22"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                      >
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+                      </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-stone-900 font-mono">
+                      Declarative constraints
+                  </h3>
+                  <p className="mt-4 text-stone-500 leading-relaxed">
+                      Chain constraints onto any Pest test. They're validated automatically after the test runs — no manual assertions needed.
+                  </p>
+
+                  <div className="mt-6 space-y-2">
+                      {[
+                          { method: "->maxQueryCount(10)", desc: "Max allowed queries" },
+                          { method: "->maxDuration(500)", desc: "Max total duration in ms" },
+                          { method: "->maxMemory('10M')", desc: "Max memory usage" },
+                          { method: "->maxN1Candidates(0)", desc: "Max N+1 patterns" },
+                          { method: "->noN1Patterns()", desc: "Require zero N+1 issues" },
+                          { method: "->maxQueryDuration(100)", desc: "Max single query ms" },
+                      ].map(({ method, desc }) => (
+                          <div key={method} className="flex items-start gap-3 text-sm">
+                              <code className="shrink-0 bg-stone-100 border border-stone-200 text-stone-700 px-2 py-0.5 rounded text-xs font-mono">
+                                  {method}
+                              </code>
+                              <span className="text-stone-500">{desc}</span>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+
+              {/* Right: terminal */}
+              <div className="bg-stone-950 rounded-xl p-1 shadow-2xl overflow-hidden">
+                  <div className="bg-stone-900 px-4 py-2 flex items-center gap-2 border-b border-white/5">
+                      <div className="flex gap-1.5">
+                          <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+                          <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
+                          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
+                      </div>
+                      <span className="text-xs text-stone-500 font-mono ml-auto">
+                          tests/Performance/UserListTest.php
+                      </span>
+                  </div>
+                  <pre className="p-5 text-xs font-mono overflow-x-auto leading-6 whitespace-pre-wrap">
+{`// Declarative — chain on any test
+test('user list has no N+1 queries')
+    ->maxQueryCount(10)
+    ->noN1Patterns()
+    ->maxDuration(500);
+
+// Measure a callback directly
+test('dashboard loads fast', function () {
+    $result = measure(fn () =>
+        User::with('posts')->paginate()
+    );
+
+    expect($result->queryCount())
+        ->toBeLessThan(20);
+});
+
+// Fluent expectation API
+test('contacts page performance', function () {
+    $result = measure(fn () =>
+        Contact::with('company')->get()
+    );
+
+    expect($result)
+        ->performance()->duration()
+            ->toBeLessThan(100)
+        ->performance()->queries()
+            ->whereTable('contacts')->count()
+            ->toBeLessThan(5)
+        ->performance()
+            ->toHaveNoN1()
+        ->performance()
+            ->toHaveNoSlowQueries(50);
+});`}
+                  </pre>
+              </div>
+          </div>
+
+          {/* Bottom row: measure() API */}
+          <div className="max-w-5xl mx-auto mt-16 grid grid-cols-1 sm:grid-cols-3 gap-px bg-stone-200">
+              {[
+                  {
+                      title: "measure()",
+                      desc: "Wrap any callback. Returns a PerformanceResult with duration, memory, queries, N+1 candidates, and timeline events.",
+                      code: "$result = measure(fn () =>\n    User::with('posts')->get()\n);",
+                  },
+                  {
+                      title: "capture() / stop()",
+                      desc: "Manual start/stop for finer control. Add timeline marks between phases to track where time is spent.",
+                      code: "$cap = capture();\ntimeline_mark('before-query');\nUser::all();\ntimeline_mark('after-query');\n$result = $cap->stop();",
+                  },
+                  {
+                      title: "PerformanceResult",
+                      desc: "Rich result DTO with methods for every metric: queryCount(), slowQueries(), n1Candidates(), tablesAccessed(), and more.",
+                      code: "$result->durationMs();\n$result->peakMemoryHuman();\n$result->queryCount();\n$result->n1Candidates(3);\n$result->summary();",
+                  },
+              ].map(({ title, desc, code }) => (
+                  <div key={title} className="bg-white p-6">
+                      <h4 className="text-sm font-bold text-stone-900 font-mono">
+                          {title}
+                      </h4>
+                      <p className="mt-2 text-sm text-stone-500 leading-relaxed">
+                          {desc}
+                      </p>
+                      <div className="mt-4 bg-stone-950 rounded-lg p-3 text-xs font-mono text-stone-300 leading-5 whitespace-pre-wrap">
+                          {code}
+                      </div>
+                  </div>
+              ))}
+          </div>
+      </section>
+
       {/* ── INSTALL ── */}
       <section
           id="install"

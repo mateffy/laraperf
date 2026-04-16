@@ -1,16 +1,24 @@
 import React from "react";
 import {
   AbsoluteFill,
+  Sequence,
   interpolate,
   useCurrentFrame,
   useVideoConfig,
   Easing,
-  Sequence,
 } from "remotion";
 import { Terminal } from "./components/Terminal";
 import { SCENES, SCENE_DURATIONS, TRANSITION_FRAMES, FIXED_TERMINAL_HEIGHT } from "./scenes";
 
-const PADDING = 48;
+const PADDING = 60;
+
+const STEP_META = [
+  { label: "Capture", sublabel: "Start a background capture session" },
+  { label: "Query", sublabel: "Analyse captured queries" },
+  { label: "Detect N+1", sublabel: "Find repeated query patterns" },
+  { label: "Explain", sublabel: "Run EXPLAIN ANALYZE on slow queries" },
+  { label: "Stop", sublabel: "End the capture session" },
+];
 
 const SceneWrapper: React.FC<{
   durationInFrames: number;
@@ -32,7 +40,7 @@ const SceneWrapper: React.FC<{
 
   const opacity = Math.min(enterOpacity, exitOpacity);
 
-  const enterTranslateY = interpolate(frame, [0, TRANSITION_FRAMES], [12, 0], {
+  const enterTranslateY = interpolate(frame, [0, TRANSITION_FRAMES], [10, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.bezier(0.16, 1, 0.3, 1),
@@ -54,15 +62,6 @@ const SceneWrapper: React.FC<{
   );
 };
 
-const STEP_META = [
-  { label: "Install", sublabel: "Add laraperf to your project" },
-  { label: "Capture", sublabel: "Start a background capture session" },
-  { label: "Query", sublabel: "Analyse captured queries" },
-  { label: "Detect N+1", sublabel: "Find repeated query patterns" },
-  { label: "Explain", sublabel: "Run EXPLAIN ANALYZE on slow queries" },
-  { label: "Stop", sublabel: "End the capture session" },
-];
-
 const SceneLabel: React.FC<{
   step: number;
   label: string;
@@ -70,13 +69,13 @@ const SceneLabel: React.FC<{
 }> = ({ step, label, sublabel }) => {
   const frame = useCurrentFrame();
 
-  const opacity = interpolate(frame, [0, 14], [0, 1], {
+  const opacity = interpolate(frame, [0, 12], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.bezier(0.16, 1, 0.3, 1),
   });
 
-  const translateY = interpolate(frame, [0, 14], [6, 0], {
+  const translateY = interpolate(frame, [0, 12], [6, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -86,23 +85,23 @@ const SceneLabel: React.FC<{
       style={{
         opacity,
         transform: `translateY(${translateY}px)`,
-        marginBottom: 20,
+        marginBottom: 24,
         display: "flex",
         alignItems: "center",
-        gap: 14,
+        gap: 16,
       }}
     >
       <div
         style={{
-          width: 32,
-          height: 32,
+          width: 36,
+          height: 36,
           borderRadius: "50%",
           backgroundColor: "#065f46",
-          color: "#34d399",
+          color: "#4ade80",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 15,
+          fontSize: 17,
           fontWeight: 700,
           fontFamily: "monospace",
           flexShrink: 0,
@@ -113,9 +112,9 @@ const SceneLabel: React.FC<{
       <div>
         <div
           style={{
-            fontFamily: "'SF Mono', 'Fira Code', monospace",
-            fontSize: 20,
-            color: "#e7e5e4",
+            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+            fontSize: 24,
+            color: "#f5f5f4",
             fontWeight: 700,
             lineHeight: 1.2,
           }}
@@ -124,8 +123,8 @@ const SceneLabel: React.FC<{
         </div>
         <div
           style={{
-            fontSize: 15,
-            color: "#78716c",
+            fontSize: 17,
+            color: "#a8a29e",
             lineHeight: 1.3,
           }}
         >
@@ -155,19 +154,17 @@ export const LaraperfDemo: React.FC = () => {
             premountFor={fps}
           >
             <SceneWrapper durationInFrames={SCENE_DURATIONS[i]}>
-              <div style={{ width: "100%", maxWidth: 960 }}>
+              <div style={{ width: "100%", maxWidth: 1050 }}>
                 <SceneLabel
                   step={i + 1}
                   label={STEP_META[i].label}
                   sublabel={STEP_META[i].sublabel}
                 />
-                <div style={{ height: FIXED_TERMINAL_HEIGHT }}>
-                  <Terminal
-                    lines={scene.lines}
-                    title={scene.title}
-                    fixedHeight={FIXED_TERMINAL_HEIGHT}
-                  />
-                </div>
+                <Terminal
+                  lines={scene.lines}
+                  title={scene.title}
+                  fixedHeight={FIXED_TERMINAL_HEIGHT}
+                />
               </div>
             </SceneWrapper>
           </Sequence>
