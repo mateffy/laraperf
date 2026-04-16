@@ -40,22 +40,6 @@ function BlogIndex() {
               className={`group ${index % 4 === 0 || index % 4 === 3 ? 'bg-stone-950/60' : 'bg-stone-50'} transition-colors`}
             >
               <Link to="/blog/$slug" params={{ slug: post.slug }} className="block p-8 lg:p-12 h-full">
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {post.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className={`text-xs font-medium px-2 py-1 border ${
-                        index % 4 === 0 || index % 4 === 3
-                          ? 'text-emerald-400 border-emerald-900 bg-emerald-950/50'
-                          : 'text-emerald-700 border-emerald-200 bg-emerald-50'
-                      }`}
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-                
                 {/* Title */}
                 <h2 className={`text-2xl lg:text-3xl font-bold font-outfit group-hover:text-emerald-600 transition-colors mb-4 leading-tight ${
                   index % 4 === 0 || index % 4 === 3 ? 'text-stone-50' : 'text-stone-900'
@@ -165,9 +149,12 @@ function BlogIndex() {
             <p className="text-stone-500 text-sm max-w-xs leading-relaxed">
               A{' '}
               <strong className="text-stone-700">
-                Laravel performance CLI
+                Laravel performance toolkit
               </strong>{' '}
-              purpose-built for LLM coding agents. MIT License.
+              for AI agents. Built by{' '}
+              <a href="https://mateffy.org" target="_blank" rel="noopener noreferrer" className="text-stone-700 hover:text-emerald-600 transition">
+                Mateffy Software Research
+              </a>. Released under the MIT License.
             </p>
             <div className="flex gap-4 mt-6 text-stone-400">
               <a
@@ -229,10 +216,30 @@ function BlogIndex() {
                   rel="noopener noreferrer"
                   className="hover:text-emerald-700 transition"
                 >
-                  License
-                </a>
-              </li>
-            </ul>
+License
+                 </a>
+               </li>
+               <li>
+                 <a
+                   href="https://mateffy.me"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   className="hover:text-emerald-700 transition"
+                 >
+                   Lukas Mateffy
+                 </a>
+               </li>
+               <li>
+                 <a
+                   href="https://mateffy.org"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   className="hover:text-emerald-700 transition"
+                 >
+                   Mateffy Software Research
+                 </a>
+               </li>
+             </ul>
           </div>
           <div>
             <h4 className="font-bold text-stone-900 mb-6 font-outfit">
@@ -283,7 +290,7 @@ function BlogIndex() {
           </div>
         </div>
         <div className="border-t border-stone-200 pt-8 text-xs text-stone-400 flex flex-col md:flex-row items-center justify-between gap-4">
-          <span>© 2026 laraperf · MIT License</span>
+          <span>© 2026 laraperf — <a href="https://mateffy.org" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-600 transition">Lukas Mateffy</a></span>
           <a
             href="https://github.com/mateffy/laraperf"
             target="_blank"

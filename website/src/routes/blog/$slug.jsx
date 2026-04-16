@@ -107,10 +107,10 @@ const Icons = {
 
 function PostHeader({ post }) {
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-8 pb-4">
+    <div className="px-8 lg:px-12 py-4 flex items-center justify-between">
       <Link
         to="/blog"
-        className="inline-flex items-center gap-2 text-sm text-stone-400 hover:text-emerald-400 transition mb-6"
+        className="inline-flex items-center gap-2 text-sm text-stone-400 hover:text-emerald-400 transition"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <line x1="19" y1="12" x2="5" y2="12" />
@@ -118,11 +118,11 @@ function PostHeader({ post }) {
         </svg>
         All articles
       </Link>
-      <div className="flex flex-wrap items-center gap-4 text-xs text-stone-400 mb-8">
-        <span>{post.author}</span>
-        <span>·</span>
+      <div className="flex items-center gap-2 text-xs text-stone-400">
+        <a href="https://mateffy.org" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition">{post.author}</a>
+        <span className="text-stone-600">·</span>
         <span>{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-        <span>·</span>
+        <span className="text-stone-600">·</span>
         <span>{post.readingTime}</span>
       </div>
     </div>
@@ -135,7 +135,7 @@ function HeroBlock({ block, eyebrow, post }) {
     return (
       <section className="border-b border-stone-200 bg-stone-950/80 pt-8">
         {post && <PostHeader post={post} />}
-        <div className="grid grid-cols-1 lg:grid-cols-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 pt-4">
           <div className="p-8 lg:p-12 flex flex-col justify-center">
             <div className="text-emerald-400 text-xs font-mono tracking-widest mb-4">{block.left.eyebrow || eyebrow}</div>
             <h1 className="text-3xl lg:text-4xl font-bold text-stone-50 font-outfit leading-tight mb-6">
@@ -171,7 +171,7 @@ function HeroBlock({ block, eyebrow, post }) {
     return (
       <section className="bg-stone-950/80 border-b border-stone-200 pt-8 pb-16 lg:pb-24 px-4">
         {post && <PostHeader post={post} />}
-        <div className="max-w-4xl mx-auto text-center">
+        <div className="max-w-4xl mx-auto text-center pt-8">
           <div className="text-emerald-400 text-xs font-mono tracking-widest mb-4">{block.eyebrow || eyebrow}</div>
           <h1 className="text-4xl lg:text-5xl font-bold text-stone-50 font-outfit leading-tight mb-6">
             {block.title}
@@ -194,7 +194,7 @@ function HeroBlock({ block, eyebrow, post }) {
     return (
       <section className="bg-stone-950/80 border-b border-stone-200 pt-8 pb-16 lg:pb-24 px-4">
         {post && <PostHeader post={post} />}
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto pt-8">
           <div className="text-center mb-12">
             <div className="text-emerald-400 text-xs font-mono tracking-widest mb-4">{block.eyebrow || eyebrow}</div>
             <h1 className="text-4xl lg:text-5xl font-bold text-stone-50 font-outfit leading-tight mb-6">
@@ -221,7 +221,7 @@ function HeroBlock({ block, eyebrow, post }) {
     return (
       <section className="bg-stone-950/80 border-b border-stone-200 pt-8">
         {post && <PostHeader post={post} />}
-        <div className="max-w-4xl mx-auto px-4 pb-16 lg:pb-24">
+        <div className="max-w-4xl mx-auto px-4 pt-8 pb-16 lg:pb-24">
           <div className="text-emerald-400 text-xs font-mono tracking-widest mb-4">{block.eyebrow || eyebrow}</div>
           <h1 className="text-3xl lg:text-4xl font-bold text-stone-50 font-outfit leading-tight mb-6">
             {block.title}
@@ -865,6 +865,7 @@ function InstallCTABlock() {
   const [copied, setCopied] = useState(false)
   const [copiedSkill, setCopiedSkill] = useState(false)
   const [copiedPrompt, setCopiedPrompt] = useState(false)
+  const [copiedBoost, setCopiedBoost] = useState(false)
 
   const promptText = 'Fetch and read the laraperf skill from https://laraperf.dev/skill.md, then install the package in this Laravel project using composer require mateffy/laraperf --dev. Run a quick performance capture to verify it\'s working.'
 
@@ -886,7 +887,7 @@ function InstallCTABlock() {
                   <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
                   <span className="font-bold text-stone-900 text-sm">Install via Composer</span>
                 </div>
-                <div className="bg-stone-950 rounded-lg p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2">
+                <div className="bg-stone-950 p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2">
                   <code className="text-xs">composer require mateffy/laraperf --dev</code>
                   <button
                     onClick={() => { navigator.clipboard?.writeText('composer require mateffy/laraperf --dev'); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
@@ -900,11 +901,20 @@ function InstallCTABlock() {
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="w-5 h-5 rounded-full bg-stone-300 text-stone-600 text-xs font-bold flex items-center justify-center shrink-0">2</span>
-                  <span className="font-bold text-stone-700 text-sm">Optional: env config</span>
+                  <span className="font-bold text-stone-700 text-sm">Using Laravel Boost?</span>
                 </div>
-                <div className="bg-stone-950 rounded-lg p-3 font-mono text-xs text-stone-300 leading-5">
-                  <div className="text-stone-500"># Connection for perf:explain</div>
-                  <div><span className="text-blue-300">PERF_CONNECTION</span>=<span className="text-emerald-300">pgsql</span></div>
+                <p className="text-stone-500 text-sm leading-relaxed mb-2">
+                  If you have <strong className="text-stone-700">Laravel Boost</strong> installed, run the following after installing laraperf — the skill is automatically added.
+                </p>
+                <div className="bg-stone-950 p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2">
+                  <code className="text-xs">php artisan boost:update</code>
+                  <button
+                    onClick={() => { navigator.clipboard?.writeText('php artisan boost:update'); setCopiedBoost(true); setTimeout(() => setCopiedBoost(false), 2000) }}
+                    className="shrink-0 text-stone-500 hover:text-stone-300 transition"
+                    title="Copy"
+                  >
+                    {copiedBoost ? <Check size={12} /> : <Copy size={12} />}
+                  </button>
                 </div>
               </div>
             </div>
@@ -915,7 +925,7 @@ function InstallCTABlock() {
             <p className="text-emerald-200/80 text-sm mb-4 leading-relaxed">
               Install the skill permanently with the CLI, or paste a prompt for a one-shot setup.
             </p>
-            <div className="bg-stone-950/60 rounded-lg p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2 mb-4">
+            <div className="bg-stone-950/60 p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2 mb-4">
               <code className="text-xs">npx skills add mateffy/laraperf</code>
               <button
                 onClick={() => { navigator.clipboard?.writeText('npx skills add mateffy/laraperf'); setCopiedSkill(true); setTimeout(() => setCopiedSkill(false), 2000) }}
@@ -932,16 +942,19 @@ function InstallCTABlock() {
               <textarea
                 readOnly
                 value={promptText}
-                className="w-full h-36 bg-emerald-900/50 border border-emerald-800 text-emerald-100 text-xs font-mono p-3 leading-relaxed resize-none focus:outline-none rounded-lg"
+                className="w-full h-36 bg-emerald-900/50 border border-emerald-800 text-emerald-100 text-xs font-mono p-3 leading-relaxed resize-none focus:outline-none"
               />
               <button
                 onClick={() => { navigator.clipboard?.writeText(promptText); setCopiedPrompt(true); setTimeout(() => setCopiedPrompt(false), 2000) }}
-                className="absolute top-2 right-2 p-1.5 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 transition rounded"
+                className="absolute top-2 right-2 p-1.5 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 transition"
                 title="Copy prompt"
               >
                 {copiedPrompt ? <Check size={14} /> : <Copy size={14} />}
               </button>
             </div>
+            <p className="text-emerald-200/60 text-xs mt-4">
+              Using <strong className="text-emerald-200/80">Laravel Boost</strong>? Run <code className="font-mono bg-emerald-900/50 px-1.5 py-0.5">php artisan boost:update</code> after installing — the skill is added automatically.
+            </p>
           </div>
         </div>
       </div>
@@ -1030,7 +1043,7 @@ function BlogPost() {
                 laraperf
               </div>
               <p className="text-stone-500 text-sm max-w-xs leading-relaxed">
-                A <strong className="text-stone-700">Laravel performance CLI</strong> purpose-built for LLM coding agents. MIT License.
+                A <strong className="text-stone-700">Laravel performance toolkit</strong> for AI agents. Built by <a href="https://mateffy.org" target="_blank" rel="noopener noreferrer" className="text-stone-700 hover:text-emerald-600 transition">Mateffy Software Research</a>. Released under the MIT License.
               </p>
             </div>
             <div>
@@ -1040,6 +1053,8 @@ function BlogPost() {
                 <li><a href="https://packagist.org/packages/mateffy/laraperf" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-700 transition">Packagist</a></li>
                 <li><a href="https://github.com/mateffy/laraperf/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-700 transition">Changelog</a></li>
                 <li><a href="https://github.com/mateffy/laraperf/blob/main/LICENSE.md" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-700 transition">License</a></li>
+                <li><a href="https://mateffy.me" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-700 transition">Lukas Mateffy</a></li>
+                <li><a href="https://mateffy.org" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-700 transition">Mateffy Software Research</a></li>
               </ul>
             </div>
             <div>
@@ -1054,7 +1069,7 @@ function BlogPost() {
             </div>
           </div>
           <div className="border-t border-stone-200 pt-8 text-xs text-stone-400 flex flex-col md:flex-row items-center justify-between gap-4">
-            <span>© 2026 laraperf · MIT License</span>
+            <span>© 2026 laraperf — <a href="https://mateffy.org" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-600 transition">Lukas Mateffy</a></span>
             <a href="https://github.com/mateffy/laraperf" target="_blank" rel="noopener noreferrer" className="text-stone-400 hover:text-emerald-700 transition">
               mateffy/laraperf
             </a>

@@ -431,7 +431,7 @@ function CommandTabs() {
                                 key={flag}
                                 className="flex items-start gap-3 text-sm"
                             >
-                                <code className="shrink-0 bg-stone-100 border border-stone-200 text-stone-700 px-2 py-0.5 rounded text-xs font-mono">
+                                <code className="shrink-0 bg-stone-100 border border-stone-200 text-stone-700 px-2 py-0.5 text-xs font-mono">
                                     {flag}
                                 </code>
                                 <span className="text-stone-500">{desc}</span>
@@ -462,8 +462,8 @@ function HomePage() {
           <p className="mt-6 text-lg md:text-xl text-stone-500 max-w-2xl mx-auto px-4">
               Capture queries, detect performance issues or N+1
               patterns, and run{" "}
-              <code className="text-sm bg-stone-100 px-1.5 py-0.5 rounded text-stone-700">
-                  EXPLAIN ANALYZE
+<code className="text-sm bg-stone-100 px-1.5 py-0.5 text-stone-700">
+                   EXPLAIN ANALYZE
               </code>{" "}
               — all via Artisan commands that output structured JSON
               to stdout. No browser, no GUI.
@@ -543,7 +543,7 @@ function HomePage() {
                       <li className="flex items-center gap-2">
 <Check size={14} className="text-emerald-600 shrink-0" />
                           Stack traces filtered to{" "}
-                          <code className="bg-stone-100 px-1 rounded text-stone-700 text-xs">
+                          <code className="bg-stone-100 px-1 text-stone-700 text-xs">
                               app/
                           </code>{" "}
                           — no vendor noise
@@ -805,12 +805,12 @@ test('contact query performance', function () {
                       </h3>
                       <p className="mt-4 text-stone-500 leading-relaxed">
                           Wrap any callback with{" "}
-                          <code className="text-sm bg-stone-100 px-1.5 py-0.5 rounded text-stone-700">
-                              measure()
-                          </code>{" "}
-                          and get a full{" "}
-                          <code className="text-sm bg-stone-100 px-1.5 py-0.5 rounded text-stone-700">
-                              PerformanceResult
+<code className="text-sm bg-stone-100 px-1.5 py-0.5 text-stone-700">
+                               measure()
+                           </code>{" "}
+                           and get a full{" "}
+                           <code className="text-sm bg-stone-100 px-1.5 py-0.5 text-stone-700">
+                               PerformanceResult
                           </code>{" "}
                           — duration, memory, query count, N+1 candidates, and timeline events. Works in tests, tinker, or anywhere in your app.
                       </p>
@@ -893,16 +893,16 @@ test('import progress tracking', function () {
                       </h3>
                       <p className="mt-4 text-stone-500 leading-relaxed">
                           For finer control, start and stop capture manually. Drop{" "}
-                          <code className="text-sm bg-stone-100 px-1.5 py-0.5 rounded text-stone-700">
-                              timeline_mark()
-                          </code>{" "}
-                          between phases to measure specific steps — then query the deltas with{" "}
-                          <code className="text-sm bg-stone-100 px-1.5 py-0.5 rounded text-stone-700">
-                              durationBetween()
-                          </code>{" "}
-                          and{" "}
-                          <code className="text-sm bg-stone-100 px-1.5 py-0.5 rounded text-stone-700">
-                              memoryDelta()
+<code className="text-sm bg-stone-100 px-1.5 py-0.5 text-stone-700">
+                               timeline_mark()
+                           </code>{" "}
+                           between phases to measure specific steps — then query the deltas with{" "}
+                           <code className="text-sm bg-stone-100 px-1.5 py-0.5 text-stone-700">
+                               durationBetween()
+                           </code>{" "}
+                           and{" "}
+                           <code className="text-sm bg-stone-100 px-1.5 py-0.5 text-stone-700">
+                               memoryDelta()
                           </code>
                           .
                       </p>
@@ -951,9 +951,9 @@ test('import progress tracking', function () {
                                   Install via Composer
                               </span>
                           </div>
-                          <div className="bg-stone-950 rounded-lg p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2">
-                              <code className="text-xs">
-                                  composer require mateffy/laraperf
+<div className="bg-stone-950 p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2">
+                               <code className="text-xs">
+                                   composer require mateffy/laraperf
                               </code>
 <button
                                    onClick={() =>
@@ -970,33 +970,32 @@ test('import progress tracking', function () {
                       </div>
 
                       <div>
-                          <div className="flex items-center gap-2 mb-3">
-                              <span className="w-5 h-5 rounded-full bg-stone-300 text-stone-600 text-xs font-bold flex items-center justify-center shrink-0">
-                                  2
-                              </span>
-                              <span className="font-bold text-stone-700 text-sm">
-                                  Optional: env config
-                              </span>
-                          </div>
-                          <div className="bg-stone-950 rounded-lg p-3 font-mono text-xs text-stone-300 leading-5">
-                              <div className="text-stone-500">
-                                  # Connection for perf:explain
-                              </div>
-                              <div>
-                                  <span className="text-blue-300">
-                                      PERF_CONNECTION
-                                  </span>
-                                  =
-                                  <span className="text-emerald-300">
-                                      pgsql
-                                  </span>
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-              </div>
+                           <div className="flex items-center gap-2 mb-3">
+                               <span className="w-5 h-5 rounded-full bg-stone-300 text-stone-600 text-xs font-bold flex items-center justify-center shrink-0">
+                                   2
+                               </span>
+                               <span className="font-bold text-stone-700 text-sm">
+                                   Using Laravel Boost?
+                               </span>
+                           </div>
+<p className="text-stone-500 text-sm leading-relaxed mb-2">
+                                If you have <strong className="text-stone-700">Laravel Boost</strong> installed, run the following after installing laraperf — the skill is automatically added.
+                            </p>
+                            <div className="bg-stone-950 p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2">
+                                <code className="text-xs">php artisan boost:update</code>
+                                <button
+                                    onClick={() => navigator.clipboard?.writeText("php artisan boost:update")}
+                                    className="text-stone-500 hover:text-stone-300 transition shrink-0"
+                                    title="Copy"
+                                >
+                                    <Copy size={12} />
+                                </button>
+                            </div>
+                       </div>
+</div>
+               </div>
 
-              {/* Agent Skill */}
+               {/* Agent Skill */}
               <div className="bg-emerald-950 p-8 lg:p-10">
                   <h3 className="text-lg font-bold text-white mb-4 font-outfit">
                       Let your agent do it
@@ -1004,7 +1003,7 @@ test('import progress tracking', function () {
                   <p className="text-emerald-200/80 text-sm mb-4 leading-relaxed">
                       Install the skill permanently with the CLI, or paste a prompt for a one-shot setup.
                   </p>
-                  <div className="bg-stone-950/60 rounded-lg p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2 mb-4">
+                  <div className="bg-stone-950/60 p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2 mb-4">
                       <code className="text-xs">npx skills add mateffy/laraperf</code>
 <button
                            onClick={() =>
@@ -1033,9 +1032,12 @@ test('import progress tracking', function () {
                            className="absolute top-2 right-2 p-1.5 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 transition"
                            title="Copy prompt"
                        >
-                           <Copy size={14} />
-                       </button>
-                  </div>
+<Copy size={14} />
+                        </button>
+                   </div>
+                   <p className="text-emerald-200/60 text-xs mt-4">
+                       Using <strong className="text-emerald-200/80">Laravel Boost</strong>? Run <code className="font-mono bg-emerald-900/50 px-1.5 py-0.5">php artisan boost:update</code> after installing — the skill is added automatically.
+                   </p>
 </div>
           </div>
       </section>
@@ -1064,8 +1066,8 @@ test('import progress tracking', function () {
                           </h3>
                           <p className="mt-3 text-stone-500 leading-relaxed">
                               The{" "}
-                              <code className="text-sm bg-stone-100 px-1.5 py-0.5 rounded text-stone-700">
-                                  laraperf-profiling
+<code className="text-sm bg-stone-100 px-1.5 py-0.5 text-stone-700">
+                                   laraperf-profiling
                               </code>{" "}
                               skill is a markdown document that lives in the repo. It
                               contains the complete workflow: which commands to run, how
@@ -1121,7 +1123,7 @@ test('import progress tracking', function () {
                       {/* Primary: npx skills add */}
                       <div className="bg-stone-950 p-6">
                           <div className="flex items-center gap-2 mb-4">
-                              <span className="bg-emerald-600 text-white text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                              <span className="bg-emerald-600 text-white text-xs font-bold px-2 py-0.5 uppercase tracking-wider">
                                   Recommended
                               </span>
                               <h4 className="text-sm font-bold text-stone-50 font-outfit">
@@ -1132,12 +1134,12 @@ test('import progress tracking', function () {
                               Permanently adds the skill to your project so every agent
                               session has it. The skill is copied into your agent's
                               skills directory and tracked in{" "}
-                              <code className="text-xs bg-stone-800 px-1 rounded text-stone-300">
+                              <code className="text-xs bg-stone-800 px-1 text-stone-300">
                                   skills-lock.json
                               </code>
                               .
                           </p>
-                          <div className="bg-stone-900 rounded-lg p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2">
+                          <div className="bg-stone-900 p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2">
                               <code className="text-xs">
                                   npx skills add mateffy/laraperf
                               </code>
@@ -1160,7 +1162,7 @@ test('import progress tracking', function () {
                                   { flag: "-y", desc: "Skip confirmation prompts" },
                               ].map(({ flag, desc }) => (
                                   <div key={flag} className="flex items-center gap-1.5 text-xs text-stone-400">
-                                      <code className="bg-stone-800 px-1.5 py-0.5 rounded text-stone-300">{flag}</code>
+                                      <code className="bg-stone-800 px-1.5 py-0.5 text-stone-300">{flag}</code>
                                       <span>{desc}</span>
                                   </div>
                               ))}
@@ -1180,7 +1182,7 @@ test('import progress tracking', function () {
                                <textarea
                                    readOnly
                                    value={`Fetch and read the laraperf skill from https://laraperf.dev/skill.md, then install the package in this Laravel project using composer require mateffy/laraperf --dev. Run a quick performance capture to verify it's working.`}
-                                   className="w-full h-36 bg-emerald-900/50 border border-emerald-800 text-emerald-100 text-xs font-mono p-3 leading-relaxed resize-none focus:outline-none rounded-lg"
+                                   className="w-full h-36 bg-emerald-900/50 border border-emerald-800 text-emerald-100 text-xs font-mono p-3 leading-relaxed resize-none focus:outline-none"
                                />
 <button
                                    onClick={() => {
@@ -1188,7 +1190,7 @@ test('import progress tracking', function () {
                                            `Fetch and read the laraperf skill from https://laraperf.dev/skill.md, then install the package in this Laravel project using composer require mateffy/laraperf --dev. Run a quick performance capture to verify it's working.`
                                        );
                                    }}
-                                   className="absolute top-2 right-2 p-1.5 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 transition rounded"
+                                   className="absolute top-2 right-2 p-1.5 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 transition"
                                    title="Copy prompt"
                                >
                                    <Copy size={14} />
@@ -1215,11 +1217,15 @@ test('import progress tracking', function () {
                                       name: "Codex / OpenAI",
                                       desc: "Add to AGENTS.md or paste as a task prompt",
                                   },
-                                  {
-                                      name: "OpenCode",
-                                      desc: "Install to .agents/skills/ via npx skills",
-                                  },
-                                  {
+{
+                                       name: "OpenCode",
+                                       desc: "Install to .agents/skills/ via npx skills",
+                                   },
+                                   {
+                                       name: "Laravel Boost",
+                                       desc: "Auto-installed — run php artisan boost:update after composer require",
+                                   },
+                                   {
                                       name: "Any agent",
                                       desc: "Fetch skill.md directly — it's plain markdown, no auth needed",
                                   },
@@ -1249,14 +1255,16 @@ test('import progress tracking', function () {
                        <Activity size={18} className="text-emerald-600" />
                        laraperf
                   </div>
-                  <p className="text-stone-500 text-sm max-w-xs leading-relaxed">
-                      A{" "}
-                      <strong className="text-stone-700">
-                          Laravel performance CLI
-                      </strong>{" "}
-                      purpose-built for LLM coding agents. MIT
-                      License.
-                  </p>
+<p className="text-stone-500 text-sm max-w-xs leading-relaxed">
+                       A{" "}
+                       <strong className="text-stone-700">
+                           Laravel performance toolkit
+                       </strong>{" "}
+                       for AI agents. Built by{" "}
+                       <a href="https://mateffy.org" target="_blank" rel="noopener noreferrer" className="text-stone-700 hover:text-emerald-600 transition">
+                           Mateffy Software Research
+                       </a>. Released under the MIT License.
+                   </p>
                   <div className="flex gap-4 mt-6 text-stone-400">
 <a
                            href="https://github.com/mateffy/laraperf"
@@ -1276,51 +1284,71 @@ test('import progress tracking', function () {
                   </div>
               </div>
               <div>
-                  <h4 className="font-bold text-stone-900 mb-6 font-outfit">
-                      Package
-                  </h4>
-                  <ul className="space-y-3 text-sm text-stone-500">
-                      <li>
-                          <a
-                              href="https://github.com/mateffy/laraperf"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="hover:text-emerald-700 transition"
-                          >
-                              GitHub
-                          </a>
-                      </li>
-                      <li>
-                          <a
-                              href="https://packagist.org/packages/mateffy/laraperf"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="hover:text-emerald-700 transition"
-                          >
-                              Packagist
-                          </a>
-                      </li>
-                      <li>
-                          <a
-                              href="https://github.com/mateffy/laraperf/blob/main/CHANGELOG.md"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="hover:text-emerald-700 transition"
-                          >
-                              Changelog
-                          </a>
-                      </li>
-                      <li>
-                          <a
-                              href="https://github.com/mateffy/laraperf/blob/main/LICENSE.md"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="hover:text-emerald-700 transition"
-                          >
-                              License
-                          </a>
-                      </li>
-                  </ul>
+<h4 className="font-bold text-stone-900 mb-6 font-outfit">
+                       Package
+                   </h4>
+                   <ul className="space-y-3 text-sm text-stone-500">
+                       <li>
+                           <a
+                               href="https://github.com/mateffy/laraperf"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="hover:text-emerald-700 transition"
+                           >
+                               GitHub
+                           </a>
+                       </li>
+                       <li>
+                           <a
+                               href="https://packagist.org/packages/mateffy/laraperf"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="hover:text-emerald-700 transition"
+                           >
+                               Packagist
+                           </a>
+                       </li>
+                       <li>
+                           <a
+                               href="https://github.com/mateffy/laraperf/blob/main/CHANGELOG.md"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="hover:text-emerald-700 transition"
+                           >
+                               Changelog
+                           </a>
+                       </li>
+                       <li>
+                           <a
+                               href="https://github.com/mateffy/laraperf/blob/main/LICENSE.md"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="hover:text-emerald-700 transition"
+                           >
+                               License
+                           </a>
+                       </li>
+                       <li>
+                           <a
+                               href="https://mateffy.me"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="hover:text-emerald-700 transition"
+                           >
+                               Lukas Mateffy
+                           </a>
+                       </li>
+                       <li>
+                           <a
+                               href="https://mateffy.org"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="hover:text-emerald-700 transition"
+                           >
+                               Mateffy Software Research
+                           </a>
+                       </li>
+                   </ul>
               </div>
               <div>
                   <h4 className="font-bold text-stone-900 mb-6 font-outfit">
@@ -1371,7 +1399,7 @@ test('import progress tracking', function () {
               </div>
           </div>
           <div className="border-t border-stone-200 pt-8 text-xs text-stone-400 flex flex-col md:flex-row items-center justify-between gap-4">
-              <span>© 2026 laraperf · MIT License</span>
+              <span>© 2026 laraperf — <a href="https://mateffy.org" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-600 transition">Lukas Mateffy</a></span>
               <a
                   href="https://github.com/mateffy/laraperf"
                   target="_blank"
