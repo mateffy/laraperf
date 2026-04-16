@@ -2,7 +2,7 @@
 
 ## Overview
 
-laraperf is a Laravel package that provides CLI commands for performance profiling. It's designed specifically for LLM coding agents to capture, analyze, and optimize database queries through structured JSON output.
+laraperf is a Laravel package that provides CLI commands for performance profiling. It's designed specifically for AI coding agents to capture, analyze, and optimize database queries through structured JSON output.
 
 ## Installation
 

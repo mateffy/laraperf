@@ -1,6 +1,6 @@
 {
     "name": "mateffy/laraperf",
-    "description": "Performance analysis toolkit for LLM coding agents — SQL query profiling, N+1 detection, EXPLAIN ANALYZE, via Artisan commands outputting structured JSON.",
+    "description": "Performance analysis toolkit for AI coding agents — SQL query profiling, N+1 detection, EXPLAIN ANALYZE, via Artisan commands outputting structured JSON.",
     "keywords": [
         "Lukas Mateffy",
         "laravel",

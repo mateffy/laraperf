@@ -15,7 +15,7 @@ uid=3_0 RootWebArea "laraperf — Laravel performance CLI for LLM agents" url="h
   uid=3_14 main
     uid=3_15 StaticText "Artisan CLI  "
     uid=3_16 StaticText "· JSON stdout"
-    uid=3_17 heading "Laravel performance profiling for LLM coding agents." level="1"
+    uid=3_17 heading "Laravel performance profiling for AI coding agents." level="1"
     uid=3_18 StaticText "Capture queries, detect performance issues or N+1 patterns, and run"
     uid=3_19 StaticText " "
     uid=3_20 StaticText "EXPLAIN ANALYZE"
@@ -201,7 +201,7 @@ uid=3_0 RootWebArea "laraperf — Laravel performance CLI for LLM agents" url="h
     uid=3_187 StaticText " "
     uid=3_188 StaticText "Laravel performance CLI"
     uid=3_189 StaticText " "
-    uid=3_190 StaticText "purpose-built for LLM coding agents. MIT License."
+    uid=3_190 StaticText "purpose-built for AI coding agents. MIT License."
     uid=3_191 link url="https://github.com/mateffy/laraperf"
     uid=3_192 heading "Package" level="4"
     uid=3_193 link "GitHub" url="https://github.com/mateffy/laraperf"

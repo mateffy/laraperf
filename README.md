@@ -1,6 +1,6 @@
 # laraperf
 
-Laravel performance analysis CLI tool for LLM coding agents. Captures SQL queries, detects N+1 patterns, and runs `EXPLAIN ANALYZE` — all through short-lived Artisan commands that output structured JSON to stdout. No browser or GUI required.
+Laravel performance analysis CLI tool for AI coding agents. Captures SQL queries, detects N+1 patterns, and runs `EXPLAIN ANALYZE` — all through short-lived Artisan commands that output structured JSON to stdout. No browser or GUI required.
 
 <br>
     

@@ -4,113 +4,119 @@
  * This creates SEO-friendly static pages for each blog post
  */
 
-import fs from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Import posts data
-const postsModule = await import('../src/data/posts.js')
-const posts = postsModule.posts || []
+const postsModule = await import("../src/data/posts.js");
+const posts = postsModule.posts || [];
 
-const DOCS_DIR = path.join(__dirname, '../../docs')
-const INDEX_HTML = path.join(DOCS_DIR, 'index.html')
+const DOCS_DIR = path.join(__dirname, "../../docs");
+const INDEX_HTML = path.join(DOCS_DIR, "index.html");
 
-console.log('🔧 Generating static blog pages...')
+console.log("🔧 Generating static blog pages...");
 
 // Read the index.html template
-const indexHtmlTemplate = fs.readFileSync(INDEX_HTML, 'utf-8')
+const indexHtmlTemplate = fs.readFileSync(INDEX_HTML, "utf-8");
 
 // Helper to fix asset paths based on depth
 function fixAssetPaths(html, depth) {
-  const prefix = depth === 0 ? './' : '../'.repeat(depth)
+  const prefix = depth === 0 ? "./" : "../".repeat(depth);
   return html
     .replace(/src="\.\/assets\//g, `src="${prefix}assets/`)
-    .replace(/href="\.\/assets\//g, `href="${prefix}assets/`)
+    .replace(/href="\.\/assets\//g, `href="${prefix}assets/`);
 }
 
 // Generate blog list page
-const blogDir = path.join(DOCS_DIR, 'blog')
+const blogDir = path.join(DOCS_DIR, "blog");
 if (!fs.existsSync(blogDir)) {
-  fs.mkdirSync(blogDir, { recursive: true })
+  fs.mkdirSync(blogDir, { recursive: true });
 }
 
 // Write blog list index (depth 1)
 const blogListHtml = fixAssetPaths(
-  indexHtmlTemplate.replace(
-    /<title>.*<\/title>/,
-    '<title>Blog — laraperf</title>'
-  ).replace(
-    /<meta name="description" content=".*" \/>/,
-    '<meta name="description" content="Articles about Laravel performance, LLM coding agents, and database optimization." />'
-  ),
-  1
-)
+  indexHtmlTemplate
+    .replace(/<title>.*<\/title>/, "<title>Blog — laraperf</title>")
+    .replace(
+      /<meta name="description" content=".*" \/>/,
+      '<meta name="description" content="Articles about Laravel performance, AI coding agents, and database optimization." />',
+    ),
+  1,
+);
 
-fs.writeFileSync(path.join(blogDir, 'index.html'), blogListHtml)
-console.log('✓ Generated /blog/index.html')
+fs.writeFileSync(path.join(blogDir, "index.html"), blogListHtml);
+console.log("✓ Generated /blog/index.html");
 
 // Generate individual blog post pages
 for (const post of posts) {
-  const postDir = path.join(blogDir, post.slug)
+  const postDir = path.join(blogDir, post.slug);
   if (!fs.existsSync(postDir)) {
-    fs.mkdirSync(postDir, { recursive: true })
+    fs.mkdirSync(postDir, { recursive: true });
   }
 
   let postHtml = indexHtmlTemplate
-    .replace(/<title>.*<\/title>/, `<title>${post.title} — laraperf Blog</title>`)
+    .replace(
+      /<title>.*<\/title>/,
+      `<title>${post.title} — laraperf Blog</title>`,
+    )
     .replace(
       /<meta name="description" content=".*" \/>/,
-      `<meta name="description" content="${post.description.replace(/"/g, '&quot;')}" />`
+      `<meta name="description" content="${post.description.replace(/"/g, "&quot;")}" />`,
     )
     // Add Open Graph tags
     .replace(
       /<\/head>/,
-      `  <meta property="og:title" content="${post.title}" />\n  <meta property="og:description" content="${post.description.replace(/"/g, '&quot;')}" />\n  <meta property="og:type" content="article" />\n  <meta property="article:published_time" content="${post.date}" />\n  <meta property="article:author" content="${post.author}" />\n  <meta property="article:tag" content="${post.tags.join(', ')}" />\n</head>`
-    )
+      `  <meta property="og:title" content="${post.title}" />\n  <meta property="og:description" content="${post.description.replace(/"/g, "&quot;")}" />\n  <meta property="og:type" content="article" />\n  <meta property="article:published_time" content="${post.date}" />\n  <meta property="article:author" content="${post.author}" />\n  <meta property="article:tag" content="${post.tags.join(", ")}" />\n</head>`,
+    );
 
   // Fix asset paths for depth 2 (/blog/slug/index.html -> assets are at ../../assets/)
-  postHtml = fixAssetPaths(postHtml, 2)
+  postHtml = fixAssetPaths(postHtml, 2);
 
-  fs.writeFileSync(path.join(postDir, 'index.html'), postHtml)
-  console.log(`✓ Generated /blog/${post.slug}/index.html`)
+  fs.writeFileSync(path.join(postDir, "index.html"), postHtml);
+  console.log(`✓ Generated /blog/${post.slug}/index.html`);
 }
 
 // Copy skill.md as plaintext for agents
-const skillSource = path.join(__dirname, '../public/skill.md')
-const skillDest = path.join(DOCS_DIR, 'skill.md')
+const skillSource = path.join(__dirname, "../public/skill.md");
+const skillDest = path.join(DOCS_DIR, "skill.md");
 if (fs.existsSync(skillSource)) {
-  fs.copyFileSync(skillSource, skillDest)
-  console.log('✓ Generated /skill.md')
+  fs.copyFileSync(skillSource, skillDest);
+  console.log("✓ Generated /skill.md");
 }
 
 // Generate sitemap.xml
-const DOMAIN = 'https://laraperf.dev'
-const today = new Date().toISOString().split('T')[0]
+const DOMAIN = "https://laraperf.dev";
+const today = new Date().toISOString().split("T")[0];
 
 const sitemapEntries = [
-  { loc: '/', changefreq: 'weekly', priority: '1.0' },
-  { loc: '/blog', changefreq: 'weekly', priority: '0.8' },
-  ...posts.map(post => ({
+  { loc: "/", changefreq: "weekly", priority: "1.0" },
+  { loc: "/blog", changefreq: "weekly", priority: "0.8" },
+  ...posts.map((post) => ({
     loc: `/blog/${post.slug}`,
     lastmod: post.date,
-    changefreq: 'monthly',
-    priority: '0.6',
+    changefreq: "monthly",
+    priority: "0.6",
   })),
-]
+];
 
 const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${sitemapEntries.map(entry => `  <url>
-    <loc>${DOMAIN}${entry.loc}</loc>${entry.lastmod ? `\n    <lastmod>${entry.lastmod}</lastmod>` : ''}
+${sitemapEntries
+  .map(
+    (entry) => `  <url>
+    <loc>${DOMAIN}${entry.loc}</loc>${entry.lastmod ? `\n    <lastmod>${entry.lastmod}</lastmod>` : ""}
     <changefreq>${entry.changefreq}</changefreq>
     <priority>${entry.priority}</priority>
-  </url>`).join('\n')}
-</urlset>`
+  </url>`,
+  )
+  .join("\n")}
+</urlset>`;
 
-fs.writeFileSync(path.join(DOCS_DIR, 'sitemap.xml'), sitemapXml)
-console.log('✓ Generated /sitemap.xml')
+fs.writeFileSync(path.join(DOCS_DIR, "sitemap.xml"), sitemapXml);
+console.log("✓ Generated /sitemap.xml");
 
-console.log(`\n✅ Generated ${posts.length + 3} static pages + sitemap`)
-console.log('📁 Output directory:', DOCS_DIR)
+console.log(`\n✅ Generated ${posts.length + 3} static pages + sitemap`);
+console.log("📁 Output directory:", DOCS_DIR);

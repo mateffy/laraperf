@@ -1,23 +1,27 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { getAllPosts } from '@/data/posts'
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { getAllPosts } from "@/data/posts";
 
-export const Route = createFileRoute('/blog/')({
+export const Route = createFileRoute("/blog/")({
   component: BlogIndex,
   loader: async () => {
     return {
-      posts: getAllPosts()
-    }
+      posts: getAllPosts(),
+    };
   },
   head: () => ({
     meta: [
-      { title: 'Blog — laraperf' },
-      { name: 'description', content: 'Articles about Laravel performance, LLM coding agents, and database optimization.' },
+      { title: "Blog — laraperf" },
+      {
+        name: "description",
+        content:
+          "Articles about Laravel performance, AI coding agents, and database optimization.",
+      },
     ],
   }),
-})
+});
 
 function BlogIndex() {
-  const { posts } = Route.useLoaderData()
+  const { posts } = Route.useLoaderData();
 
   return (
     <>
@@ -27,7 +31,8 @@ function BlogIndex() {
           Blog
         </h1>
         <p className="mt-6 text-lg md:text-xl text-stone-500 max-w-2xl mx-auto px-4">
-          Articles about Laravel performance, LLM coding agents, and database optimization.
+          Articles about Laravel performance, AI coding agents, and database
+          optimization.
         </p>
       </section>
 
@@ -37,27 +42,43 @@ function BlogIndex() {
           {posts.map((post, index) => (
             <article
               key={post.slug}
-              className={`group ${index % 4 === 0 || index % 4 === 3 ? 'bg-stone-950/60' : 'bg-stone-50'} transition-colors`}
+              className={`group ${index % 4 === 0 || index % 4 === 3 ? "bg-stone-950/60" : "bg-stone-50"} transition-colors`}
             >
-              <Link to="/blog/$slug" params={{ slug: post.slug }} className="block p-8 lg:p-12 h-full">
+              <Link
+                to="/blog/$slug"
+                params={{ slug: post.slug }}
+                className="block p-8 lg:p-12 h-full"
+              >
                 {/* Title */}
-                <h2 className={`text-2xl lg:text-3xl font-bold font-outfit group-hover:text-emerald-600 transition-colors mb-4 leading-tight ${
-                  index % 4 === 0 || index % 4 === 3 ? 'text-stone-50' : 'text-stone-900'
-                }`}>
+                <h2
+                  className={`text-2xl lg:text-3xl font-bold font-outfit group-hover:text-emerald-600 transition-colors mb-4 leading-tight ${
+                    index % 4 === 0 || index % 4 === 3
+                      ? "text-stone-50"
+                      : "text-stone-900"
+                  }`}
+                >
                   {post.title}
                 </h2>
-                
+
                 {/* Description */}
-                <p className={`leading-relaxed mb-6 ${
-                  index % 4 === 0 || index % 4 === 3 ? 'text-stone-300' : 'text-stone-500'
-                }`}>
+                <p
+                  className={`leading-relaxed mb-6 ${
+                    index % 4 === 0 || index % 4 === 3
+                      ? "text-stone-300"
+                      : "text-stone-500"
+                  }`}
+                >
                   {post.description}
                 </p>
-                
+
                 {/* Meta */}
-                <div className={`flex items-center gap-6 text-sm ${
-                  index % 4 === 0 || index % 4 === 3 ? 'text-stone-400' : 'text-stone-400'
-                }`}>
+                <div
+                  className={`flex items-center gap-6 text-sm ${
+                    index % 4 === 0 || index % 4 === 3
+                      ? "text-stone-400"
+                      : "text-stone-400"
+                  }`}
+                >
                   <span className="flex items-center gap-2">
                     <svg
                       width="14"
@@ -74,10 +95,10 @@ function BlogIndex() {
                       <line x1="8" y1="2" x2="8" y2="6" />
                       <line x1="3" y1="10" x2="21" y2="10" />
                     </svg>
-                    {new Date(post.date).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
+                    {new Date(post.date).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
                     })}
                   </span>
                   <span className="flex items-center gap-2">
@@ -99,11 +120,13 @@ function BlogIndex() {
                 </div>
 
                 {/* Read more */}
-                <div className={`mt-8 flex items-center gap-2 text-sm font-medium ${
-                  index % 4 === 0 || index % 4 === 3
-                    ? 'text-emerald-400 group-hover:text-emerald-300'
-                    : 'text-emerald-600 group-hover:text-emerald-700'
-                } transition-colors`}>
+                <div
+                  className={`mt-8 flex items-center gap-2 text-sm font-medium ${
+                    index % 4 === 0 || index % 4 === 3
+                      ? "text-emerald-400 group-hover:text-emerald-300"
+                      : "text-emerald-600 group-hover:text-emerald-700"
+                  } transition-colors`}
+                >
                   Read article
                   <svg
                     width="16"
@@ -147,14 +170,20 @@ function BlogIndex() {
               laraperf
             </div>
             <p className="text-stone-500 text-sm max-w-xs leading-relaxed">
-              A{' '}
+              A{" "}
               <strong className="text-stone-700">
                 Laravel performance toolkit
-              </strong>{' '}
-              for AI agents. Built by{' '}
-              <a href="https://mateffy.org" target="_blank" rel="noopener noreferrer" className="text-stone-700 hover:text-emerald-600 transition">
+              </strong>{" "}
+              for AI agents. Built by{" "}
+              <a
+                href="https://mateffy.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-stone-700 hover:text-emerald-600 transition"
+              >
                 Mateffy Software Research
-              </a>. Released under the MIT License.
+              </a>
+              . Released under the MIT License.
             </p>
             <div className="flex gap-4 mt-6 text-stone-400">
               <a
@@ -216,30 +245,30 @@ function BlogIndex() {
                   rel="noopener noreferrer"
                   className="hover:text-emerald-700 transition"
                 >
-License
-                 </a>
-               </li>
-               <li>
-                 <a
-                   href="https://mateffy.me"
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   className="hover:text-emerald-700 transition"
-                 >
-                   Lukas Mateffy
-                 </a>
-               </li>
-               <li>
-                 <a
-                   href="https://mateffy.org"
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   className="hover:text-emerald-700 transition"
-                 >
-                   Mateffy Software Research
-                 </a>
-               </li>
-             </ul>
+                  License
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://mateffy.me"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-emerald-700 transition"
+                >
+                  Lukas Mateffy
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://mateffy.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-emerald-700 transition"
+                >
+                  Mateffy Software Research
+                </a>
+              </li>
+            </ul>
           </div>
           <div>
             <h4 className="font-bold text-stone-900 mb-6 font-outfit">
@@ -290,7 +319,17 @@ License
           </div>
         </div>
         <div className="border-t border-stone-200 pt-8 text-xs text-stone-400 flex flex-col md:flex-row items-center justify-between gap-4">
-          <span>© 2026 laraperf — <a href="https://mateffy.org" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-600 transition">Lukas Mateffy</a></span>
+          <span>
+            © 2026 laraperf —{" "}
+            <a
+              href="https://mateffy.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-emerald-600 transition"
+            >
+              Lukas Mateffy
+            </a>
+          </span>
           <a
             href="https://github.com/mateffy/laraperf"
             target="_blank"
@@ -302,5 +341,5 @@ License
         </div>
       </footer>
     </>
-  )
+  );
 }

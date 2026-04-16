@@ -1,6 +1,6 @@
 ## Laraperf
 
-Laraperf is a performance analysis toolkit for Laravel, purpose-built for LLM coding agents. It captures SQL queries transparently, detects N+1 patterns, and runs EXPLAIN ANALYZE — all via short-lived Artisan commands that output structured JSON.
+Laraperf is a performance analysis toolkit for Laravel, purpose-built for AI coding agents. It captures SQL queries transparently, detects N+1 patterns, and runs EXPLAIN ANALYZE — all via short-lived Artisan commands that output structured JSON.
 
 - IMPORTANT: Prefer `perf:` commands rather than manual DB debugging when profiling queries or investigating N+1 issues.
 - All command output is JSON on stdout; human-readable status messages go to stderr.
