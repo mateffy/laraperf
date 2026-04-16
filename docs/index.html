@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>laraperf — Laravel Performance CLI for LLM Agents</title>
+  <meta name="description" content="Capture SQL queries, detect N+1 patterns, and run EXPLAIN ANALYZE — all from the terminal. Purpose-built for LLM coding agents.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏁</text></svg>">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style type="text/tailwindcss">
+    @theme {
+      --color-pit-950: #0c0a09;
+      --color-pit-900: #1c1917;
+      --color-pit-800: #292524;
+      --color-pit-700: #44403c;
+      --color-pit-600: #57534e;
+      --color-pit-500: #78716c;
+      --color-pit-400: #a8a29e;
+      --color-pit-300: #d6d3d1;
+      --color-amber-400: #fbbf24;
+      --color-amber-500: #f59e0b;
+      --color-amber-600: #d97706;
+      --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+  </style>
+  <style>
+    .gridscan-container { position: relative; width: 100%; height: 100%; overflow: hidden; }
+    .gridscan-container canvas { display: block; width: 100% !important; height: 100% !important; }
+    @keyframes pulse-slow { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-pulse-slow { animation: pulse-slow 2s ease-in-out infinite; }
+    .animate-blink { animation: blink 1s step-end infinite; }
+    .animate-fade-in { animation: fade-in-up 0.6s ease-out forwards; }
+    .animate-fade-in-delay-1 { animation: fade-in-up 0.6s ease-out 0.1s forwards; opacity: 0; }
+    .animate-fade-in-delay-2 { animation: fade-in-up 0.6s ease-out 0.2s forwards; opacity: 0; }
+    .animate-fade-in-delay-3 { animation: fade-in-up 0.6s ease-out 0.3s forwards; opacity: 0; }
+    .animate-fade-in-delay-4 { animation: fade-in-up 0.6s ease-out 0.4s forwards; opacity: 0; }
+    html { scroll-behavior: smooth; }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #1c1917; }
+    ::-webkit-scrollbar-thumb { background: #44403c; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #57534e; }
+    .code-block { counter-reset: line; }
+    .code-block .line::before { counter-increment: line; content: counter(line); display: inline-block; width: 2em; margin-right: 1em; color: rgba(168,162,158,0.3); text-align: right; font-variant-numeric: tabular-nums; }
+  </style>
+  </head>
+<body class="bg-pit-950 text-pit-300 font-sans antialiased overflow-x-hidden">
+  <div id="root"></div>
+  <script type="module">
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'https://esm.sh/react@18.3.1';
+import { createRoot } from 'https://esm.sh/react-dom@18.3.1';
+import htm from 'https://esm.sh/htm@3.1.1';
+import * as THREE from 'https://esm.sh/three@0.170.0';
+
+const html = htm.bind(React.createElement);
+
+// ═══════════════════════════════════════════
+// GridScan — adapted from react-bits
+// (stripped: no face-api.js, no webcam, no postprocessing)
+// ═══════════════════════════════════════════
+
+const GRIDSCAN_VERT = `
+varying vec2 vUv;
+void main(){
+  vUv = uv;
+  gl_Position = vec4(position.xy, 0.0, 1.0);
+}
+`;
+
+const GRIDSCAN_FRAG = `
+precision highp float;
+uniform vec3 iResolution;
+uniform float iTime;
+uniform vec2 uSkew;
+uniform float uTilt;
+uniform float uYaw;
+uniform float uLineThickness;
+uniform vec3 uLinesColor;
+uniform vec3 uScanColor;
+uniform float uGridScale;
+uniform float uLineStyle;
+uniform float uLineJitter;
+uniform float uScanOpacity;
+uniform float uScanDirection;
+uniform float uNoise;
+uniform float uBloomOpacity;
+uniform float uScanGlow;
+uniform float uScanSoftness;
+uniform float uPhaseTaper;
+uniform float uScanDuration;
+uniform float uScanDelay;
+varying vec2 vUv;
+
+uniform float uScanStarts[8];
+uniform float uScanCount;
+
+const int MAX_SCANS = 8;
+
+float smoother01(float a, float b, float x){
+  float t = clamp((x - a) / max(1e-5, (b - a)), 0.0, 1.0);
+  return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+}
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
+{
+    vec2 p = (2.0 * fragCoord - iResolution.xy) / iResolution.y;
+    vec3 ro = vec3(0.0);
+    vec3 rd = normalize(vec3(p, 2.0));
+    float cR = cos(uTilt), sR = sin(uTilt);
+    rd.xy = mat2(cR, -sR, sR, cR) * rd.xy;
+    float cY = cos(uYaw), sY = sin(uYaw);
+    rd.xz = mat2(cY, -sY, sY, cY) * rd.xz;
+    vec2 skew = clamp(uSkew, vec2(-0.7), vec2(0.7));
+    rd.xy += skew * rd.z;
+    vec3 color = vec3(0.0);
+    float minT = 1e20;
+    float gridScale = max(1e-5, uGridScale);
+    float fadeStrength = 2.0;
+    vec2 gridUV = vec2(0.0);
+    float hitIsY = 1.0;
+    for (int i = 0; i < 4; i++)
+    {
+        float isY = float(i < 2);
+        float pos = mix(-0.2, 0.2, float(i)) * isY + mix(-0.5, 0.5, float(i - 2)) * (1.0 - isY);
+        float num = pos - (isY * ro.y + (1.0 - isY) * ro.x);
+        float den = isY * rd.y + (1.0 - isY) * rd.x;
+        float t = num / den;
+        vec3 h = ro + rd * t;
+        float depthBoost = smoothstep(0.0, 3.0, h.z);
+        h.xy += skew * 0.15 * depthBoost;
+        bool use = t > 0.0 && t < minT;
+        gridUV = use ? mix(h.zy, h.xz, isY) / gridScale : gridUV;
+        minT = use ? t : minT;
+        hitIsY = use ? isY : hitIsY;
+    }
+    vec3 hit = ro + rd * minT;
+    float dist = length(hit - ro);
+    float jitterAmt = clamp(uLineJitter, 0.0, 1.0);
+    if (jitterAmt > 0.0) {
+        vec2 j = vec2(sin(gridUV.y * 2.7 + iTime * 1.8), cos(gridUV.x * 2.3 - iTime * 1.6)) * (0.15 * jitterAmt);
+        gridUV += j;
+    }
+    float fx = fract(gridUV.x);
+    float fy = fract(gridUV.y);
+    float ax = min(fx, 1.0 - fx);
+    float ay = min(fy, 1.0 - fy);
+    float wx = fwidth(gridUV.x);
+    float wy = fwidth(gridUV.y);
+    float halfPx = max(0.0, uLineThickness) * 0.5;
+    float tx = halfPx * wx;
+    float ty = halfPx * wy;
+    float lineX = 1.0 - smoothstep(tx, tx + wx, ax);
+    float lineY = 1.0 - smoothstep(ty, ty + wy, ay);
+    float primaryMask = max(lineX, lineY);
+    float fade = exp(-dist * fadeStrength);
+    float dur = max(0.05, uScanDuration);
+    float del = max(0.0, uScanDelay);
+    float scanZMax = 2.0;
+    float widthScale = max(0.1, uScanGlow);
+    float sigma = max(0.001, 0.18 * widthScale * uScanSoftness);
+    float sigmaA = sigma * 2.0;
+    float combinedPulse = 0.0;
+    float combinedAura = 0.0;
+    float cycle = dur + del;
+    float tCycle = mod(iTime, cycle);
+    float scanPhase = clamp((tCycle - del) / dur, 0.0, 1.0);
+    float phase = scanPhase;
+    if (uScanDirection > 0.5 && uScanDirection < 1.5) phase = 1.0 - phase;
+    else if (uScanDirection > 1.5) {
+        float t2 = mod(max(0.0, iTime - del), 2.0 * dur);
+        phase = (t2 < dur) ? (t2 / dur) : (1.0 - (t2 - dur) / dur);
+    }
+    float scanZ = phase * scanZMax;
+    float dz = abs(hit.z - scanZ);
+    float lineBand = exp(-0.5 * (dz * dz) / (sigma * sigma));
+    float taper = clamp(uPhaseTaper, 0.0, 0.49);
+    float headFade = smoother01(0.0, taper, phase);
+    float tailFade = 1.0 - smoother01(1.0 - taper, 1.0, phase);
+    float phaseWindow = headFade * tailFade;
+    combinedPulse += lineBand * phaseWindow * clamp(uScanOpacity, 0.0, 1.0);
+    float auraBand = exp(-0.5 * (dz * dz) / (sigmaA * sigmaA));
+    combinedAura += (auraBand * 0.25) * phaseWindow * clamp(uScanOpacity, 0.0, 1.0);
+    for (int i = 0; i < MAX_SCANS; i++) {
+        if (float(i) >= uScanCount) break;
+        float tActiveI = iTime - uScanStarts[i];
+        float phaseI = clamp(tActiveI / dur, 0.0, 1.0);
+        if (uScanDirection > 0.5 && uScanDirection < 1.5) phaseI = 1.0 - phaseI;
+        else if (uScanDirection > 1.5) phaseI = (phaseI < 0.5) ? (phaseI * 2.0) : (1.0 - (phaseI - 0.5) * 2.0);
+        float scanZI = phaseI * scanZMax;
+        float dzI = abs(hit.z - scanZI);
+        float lineBandI = exp(-0.5 * (dzI * dzI) / (sigma * sigma));
+        float headFadeI = smoother01(0.0, taper, phaseI);
+        float tailFadeI = 1.0 - smoother01(1.0 - taper, 1.0, phaseI);
+        float phaseWindowI = headFadeI * tailFadeI;
+        combinedPulse += lineBandI * phaseWindowI * clamp(uScanOpacity, 0.0, 1.0);
+        float auraBandI = exp(-0.5 * (dzI * dzI) / (sigmaA * sigmaA));
+        combinedAura += (auraBandI * 0.25) * phaseWindowI * clamp(uScanOpacity, 0.0, 1.0);
+    }
+    float lineVis = primaryMask;
+    vec3 gridCol = uLinesColor * lineVis * fade;
+    vec3 scanCol = uScanColor * combinedPulse;
+    vec3 scanAura = uScanColor * combinedAura;
+    color = gridCol + scanCol + scanAura;
+    float n = fract(sin(dot(gl_FragCoord.xy + vec2(iTime * 123.4), vec2(12.9898,78.233))) * 43758.5453123);
+    color += (n - 0.5) * uNoise;
+    color = clamp(color, 0.0, 1.0);
+    float alpha = clamp(max(lineVis, combinedPulse), 0.0, 1.0);
+    float gx = 1.0 - smoothstep(tx * 2.0, tx * 2.0 + wx * 2.0, ax);
+    float gy = 1.0 - smoothstep(ty * 2.0, ty * 2.0 + wy * 2.0, ay);
+    float halo = max(gx, gy) * fade;
+    alpha = max(alpha, halo * clamp(uBloomOpacity, 0.0, 1.0));
+    fragColor = vec4(color, alpha);
+}
+
+void main(){
+  vec4 c;
+  mainImage(c, vUv * iResolution.xy);
+  gl_FragColor = c;
+}
+`;
+
+function srgbColor(hex) {
+  return new THREE.Color(hex).convertSRGBToLinear();
+}
+
+function GridScan({
+  maxDuration = 5,
+  linesColor = '#2F293A',
+  scanColor = '#fbbf24',
+  scanOpacity = 0.35,
+  gridScale = 0.1,
+  lineThickness = 1,
+  lineStyle = 'solid',
+  lineJitter = 0.1,
+  scanDirection = 'pingpong',
+  scanGlow = 0.5,
+  scanSoftness = 2,
+  scanPhaseTaper = 0.9,
+  scanDuration = 2.0,
+  scanDelay = 2.0,
+  noiseIntensity = 0.01,
+  bloomIntensity = 0.15,
+  sensitivity = 0.55,
+  className = '',
+  style = {},
+  onClick,
+  children
+}) {
+  const containerRef = useRef(null);
+  const rafRef = useRef(null);
+  const lookTarget = useRef({ x: 0, y: 0 });
+  const lookCurrent = useRef({ x: 0, y: 0 });
+  const lookVel = useRef({ x: 0, y: 0 });
+  const materialRef = useRef(null);
+  const rendererRef = useRef(null);
+  const startTimeRef = useRef(performance.now() / 1000);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    rendererRef.current = renderer;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setClearColor(0x000000, 0);
+    renderer.autoClear = false;
+    container.appendChild(renderer.domElement);
+
+    const uniforms = {
+      iResolution: { value: new THREE.Vector3(container.clientWidth, container.clientHeight, renderer.getPixelRatio()) },
+      iTime: { value: 0 },
+      uSkew: { value: new THREE.Vector2(0, 0) },
+      uTilt: { value: 0 },
+      uYaw: { value: 0 },
+      uLineThickness: { value: lineThickness },
+      uLinesColor: { value: srgbColor(linesColor) },
+      uScanColor: { value: srgbColor(scanColor) },
+      uGridScale: { value: gridScale },
+      uLineStyle: { value: lineStyle === 'dashed' ? 1 : lineStyle === 'dotted' ? 2 : 0 },
+      uLineJitter: { value: Math.max(0, Math.min(1, lineJitter || 0)) },
+      uScanOpacity: { value: scanOpacity },
+      uNoise: { value: noiseIntensity },
+      uBloomOpacity: { value: bloomIntensity },
+      uScanGlow: { value: scanGlow },
+      uScanSoftness: { value: scanSoftness },
+      uPhaseTaper: { value: scanPhaseTaper },
+      uScanDuration: { value: Math.max(0.05, scanDuration) },
+      uScanDelay: { value: Math.max(0.0, scanDelay) },
+      uScanDirection: { value: scanDirection === 'backward' ? 1 : scanDirection === 'pingpong' ? 2 : 0 },
+      uScanStarts: { value: new Array(8).fill(0) },
+      uScanCount: { value: 0 }
+    };
+
+    const material = new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: GRIDSCAN_VERT,
+      fragmentShader: GRIDSCAN_FRAG,
+      transparent: true,
+      depthWrite: false,
+      depthTest: false
+    });
+    materialRef.current = material;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+    scene.add(quad);
+
+    const s = THREE.MathUtils.clamp(sensitivity, 0, 1);
+    const skewScale = THREE.MathUtils.lerp(0.06, 0.2, s);
+    const tiltScale = THREE.MathUtils.lerp(0.12, 0.3, s);
+    const yawScale = THREE.MathUtils.lerp(0.1, 0.28, s);
+    const yBoost = THREE.MathUtils.lerp(1.2, 1.6, s);
+    const smoothTime = THREE.MathUtils.lerp(0.45, 0.12, s);
+
+    const onResize = () => {
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      material.uniforms.iResolution.value.set(container.clientWidth, container.clientHeight, renderer.getPixelRatio());
+    };
+    window.addEventListener('resize', onResize);
+
+    const onMouse = (e) => {
+      const rect = container.getBoundingClientRect();
+      const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const ny = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+      lookTarget.current = { x: nx, y: ny };
+    };
+    const onLeave = () => { lookTarget.current = { x: 0, y: 0 }; };
+    container.addEventListener('mousemove', onMouse);
+    container.addEventListener('mouseleave', onLeave);
+
+    let last = performance.now();
+    const tick = () => {
+      const now = performance.now();
+      const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));
+      last = now;
+
+      const lCur = lookCurrent.current;
+      const lTar = lookTarget.current;
+      const lVel = lookVel.current;
+      const omega = 2 / Math.max(0.0001, smoothTime);
+      const x = omega * dt;
+      const exp = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x);
+      let changeX = lCur.x - lTar.x;
+      let changeY = lCur.y - lTar.y;
+      const maxChange = Infinity * smoothTime;
+      changeX = Math.sign(changeX) * Math.min(Math.abs(changeX), maxChange);
+      changeY = Math.sign(changeY) * Math.min(Math.abs(changeY), maxChange);
+      const tarX = lCur.x - changeX;
+      const tarY = lCur.y - changeY;
+      const tempX = (lVel.x + omega * changeX) * dt;
+      const tempY = (lVel.y + omega * changeY) * dt;
+      lVel.x = (lVel.x - omega * tempX) * exp;
+      lVel.y = (lVel.y - omega * tempY) * exp;
+      lCur.x = tarX + (changeX + tempX) * exp;
+      lCur.y = tarY + (changeY + tempY) * exp;
+
+      material.uniforms.uSkew.value.set(lCur.x * skewScale, -lCur.y * yBoost * skewScale);
+      material.uniforms.iTime.value = now / 1000 - startTimeRef.current;
+      renderer.clear(true, true, true);
+      renderer.render(scene, camera);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      window.removeEventListener('resize', onResize);
+      container.removeEventListener('mousemove', onMouse);
+      container.removeEventListener('mouseleave', onLeave);
+      material.dispose();
+      quad.geometry.dispose();
+      renderer.dispose();
+      renderer.forceContextLoss();
+      if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
+    };
+  }, [linesColor, scanColor, scanOpacity, gridScale, lineThickness, lineStyle, lineJitter, scanDirection, scanGlow, scanSoftness, scanPhaseTaper, scanDuration, scanDelay, noiseIntensity, bloomIntensity, sensitivity]);
+
+  return html`<div ref=${containerRef} className=${'gridscan-container ' + className} style=${{ position: 'relative', ...style }}>${children}</div>`;
+}
+
+// ═══════════════════════════════════════════
+// GradualBlur — adapted from react-bits
+// (stripped: mathjs replaced with Math.pow)
+// ═══════════════════════════════════════════
+
+const CURVE_FUNCTIONS = {
+  linear: (p) => p,
+  bezier: (p) => p * p * (3 - 2 * p),
+  'ease-in': (p) => p * p,
+  'ease-out': (p) => 1 - Math.pow(1 - p, 2),
+  'ease-in-out': (p) => (p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2),
+};
+
+function GradualBlur({
+  position = 'bottom',
+  strength = 2,
+  height = '6rem',
+  divCount = 5,
+  exponential = false,
+  curve = 'linear',
+  opacity = 1,
+  className = '',
+  style = {},
+}) {
+  const direction = position === 'top' ? 'to top' : position === 'bottom' ? 'to bottom' : position === 'left' ? 'to left' : 'to right';
+  const blurDivs = [];
+  const increment = 100 / divCount;
+  const curveFunc = CURVE_FUNCTIONS[curve] || CURVE_FUNCTIONS.linear;
+
+  for (let i = 1; i <= divCount; i++) {
+    let progress = i / divCount;
+    progress = curveFunc(progress);
+    let blurValue = exponential
+      ? Math.pow(2, progress * 4) * 0.0625 * strength
+      : 0.0625 * (progress * divCount + 1) * strength;
+    const p1 = Math.round((increment * i - increment) * 10) / 10;
+    const p2 = Math.round(increment * i * 10) / 10;
+    const p3 = Math.round((increment * i + increment) * 10) / 10;
+    const p4 = Math.round((increment * i + increment * 2) * 10) / 10;
+    let gradient = `transparent ${p1}%, black ${p2}%`;
+    if (p3 <= 100) gradient += `, black ${p3}%`;
+    if (p4 <= 100) gradient += `, transparent ${p4}%`;
+    const maskImage = `linear-gradient(${direction}, ${gradient})`;
+    blurDivs.push(html`<div
+      key=${i}
+      style=${{
+        position: 'absolute',
+        inset: '0',
+        backdropFilter: `blur(${blurValue.toFixed(3)}rem)`,
+        WebkitBackdropFilter: `blur(${blurValue.toFixed(3)}rem)`,
+        maskImage,
+        WebkitMaskImage: maskImage,
+        opacity,
+      }}
+    />`);
+  }
+
+  return html`<div
+    className=${'gradual-blur ' + className}
+    style=${{
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      height,
+      ...(position === 'top' ? { top: 0 } : position === 'bottom' ? { bottom: 0 } : position === 'left' ? { top: 0, bottom: 0, width: height, height: 'auto' } : { top: 0, bottom: 0, width: height, height: 'auto' }),
+      pointerEvents: 'none',
+      zIndex: 10,
+      ...style,
+    }}
+  >${blurDivs}</div>`;
+}
+
+// ═══════════════════════════════════════════
+// BorderGlow — from react-bits (unmodified)
+// ═══════════════════════════════════════════
+
+function parseHSL(hslStr) {
+  const match = hslStr.match(/([\d.]+)\s*([\d.]+)%?\s*([\d.]+)%?/);
+  if (!match) return { h: 40, s: 80, l: 80 };
+  return { h: parseFloat(match[1]), s: parseFloat(match[2]), l: parseFloat(match[3]) };
+}
+
+function buildBoxShadow(glowColor, intensity) {
+  const { h, s, l } = parseHSL(glowColor);
+  const base = `${h}deg ${s}% ${l}%`;
+  const layers = [
+    [0, 0, 0, 1, 100, true], [0, 0, 1, 0, 60, true], [0, 0, 3, 0, 50, true],
+    [0, 0, 6, 0, 40, true], [0, 0, 15, 0, 30, true], [0, 0, 25, 2, 20, true],
+    [0, 0, 50, 2, 10, true],
+    [0, 0, 1, 0, 60, false], [0, 0, 3, 0, 50, false], [0, 0, 6, 0, 40, false],
+    [0, 0, 15, 0, 30, false], [0, 0, 25, 2, 20, false], [0, 0, 50, 2, 10, false],
+  ];
+  return layers.map(([x, y, blur, spread, alpha, inset]) => {
+    const a = Math.min(alpha * intensity, 100);
+    return `${inset ? 'inset ' : ''}${x}px ${y}px ${blur}px ${spread}px hsl(${base} / ${a}%)`;
+  }).join(', ');
+}
+
+const GRADIENT_POSITIONS = ['80% 55%', '69% 34%', '8% 6%', '41% 38%', '86% 85%', '82% 18%', '51% 4%'];
+const COLOR_MAP = [0, 1, 2, 0, 1, 2, 1];
+
+function buildMeshGradients(colors) {
+  const gradients = [];
+  for (let i = 0; i < 7; i++) {
+    const c = colors[Math.min(COLOR_MAP[i], colors.length - 1)];
+    gradients.push(`radial-gradient(at ${GRADIENT_POSITIONS[i]}, ${c} 0px, transparent 50%)`);
+  }
+  gradients.push(`linear-gradient(${colors[0]} 0 100%)`);
+  return gradients;
+}
+
+function easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
+function easeInCubic(x) { return x * x * x; }
+
+function animateValue({ start = 0, end = 100, duration = 1000, delay = 0, ease = easeOutCubic, onUpdate, onEnd }) {
+  const t0 = performance.now() + delay;
+  function tick() {
+    const elapsed = performance.now() - t0;
+    const t = Math.min(elapsed / duration, 1);
+    onUpdate(start + (end - start) * ease(t));
+    if (t < 1) requestAnimationFrame(tick);
+    else if (onEnd) onEnd();
+  }
+  setTimeout(() => requestAnimationFrame(tick), delay);
+}
+
+function BorderGlow({
+  children,
+  className = '',
+  edgeSensitivity = 30,
+  glowColor = '40 80 80',
+  backgroundColor = '#0c0a09',
+  borderRadius = 12,
+  glowRadius = 40,
+  glowIntensity = 1.0,
+  coneSpread = 25,
+  animated = false,
+  colors = ['#fbbf24', '#f59e0b', '#d97706'],
+  fillOpacity = 0.4,
+}) {
+  const cardRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [cursorAngle, setCursorAngle] = useState(45);
+  const [edgeProximity, setEdgeProximity] = useState(0);
+  const [sweepActive, setSweepActive] = useState(false);
+
+  const getCenter = useCallback((el) => {
+    const { width, height } = el.getBoundingClientRect();
+    return [width / 2, height / 2];
+  }, []);
+
+  const getEdgeProx = useCallback((el, x, y) => {
+    const [cx, cy] = getCenter(el);
+    const dx = x - cx, dy = y - cy;
+    let kx = Infinity, ky = Infinity;
+    if (dx !== 0) kx = cx / Math.abs(dx);
+    if (dy !== 0) ky = cy / Math.abs(dy);
+    return Math.min(Math.max(1 / Math.min(kx, ky), 0), 1);
+  }, [getCenter]);
+
+  const getAngle = useCallback((el, x, y) => {
+    const [cx, cy] = getCenter(el);
+    const dx = x - cx, dy = y - cy;
+    let deg = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+    if (deg < 0) deg += 360;
+    return deg;
+  }, [getCenter]);
+
+  const handlePointerMove = useCallback((e) => {
+    const card = cardRef.current;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    setEdgeProximity(getEdgeProx(card, x, y));
+    setCursorAngle(getAngle(card, x, y));
+  }, [getEdgeProx, getAngle]);
+
+  useEffect(() => {
+    if (!animated) return;
+    const angleStart = 110, angleEnd = 465;
+    setSweepActive(true);
+    setCursorAngle(angleStart);
+    animateValue({ duration: 500, onUpdate: (v) => setEdgeProximity(v / 100) });
+    animateValue({ ease: easeInCubic, duration: 1500, end: 50, onUpdate: (v) => setCursorAngle((angleEnd - angleStart) * (v / 100) + angleStart) });
+    animateValue({ ease: easeOutCubic, delay: 1500, duration: 2250, start: 50, end: 100, onUpdate: (v) => setCursorAngle((angleEnd - angleStart) * (v / 100) + angleStart) });
+    animateValue({ ease: easeInCubic, delay: 2500, duration: 1500, start: 100, end: 0, onUpdate: (v) => setEdgeProximity(v / 100), onEnd: () => setSweepActive(false) });
+  }, [animated]);
+
+  const colorSensitivity = edgeSensitivity + 20;
+  const isVisible = isHovered || sweepActive;
+  const borderOpacity = isVisible ? Math.max(0, (edgeProximity * 100 - colorSensitivity) / (100 - colorSensitivity)) : 0;
+  const glowOpacity = isVisible ? Math.max(0, (edgeProximity * 100 - edgeSensitivity) / (100 - edgeSensitivity)) : 0;
+  const meshGradients = buildMeshGradients(colors);
+  const borderBg = meshGradients.map(g => `${g} border-box`);
+  const fillBg = meshGradients.map(g => `${g} padding-box`);
+  const angleDeg = `${cursorAngle.toFixed(3)}deg`;
+
+  const maskCompositeValue = 'subtract, add, add, add, add, add';
+  const webkitMaskCompositeValue = 'source-out, source-over, source-over, source-over, source-over, source-over';
+
+  const borderStyle = {
+    border: '1px solid transparent',
+    background: [`linear-gradient(${backgroundColor} 0 100%) padding-box`, 'linear-gradient(rgb(255 255 255 / 0%) 0% 100%) border-box', ...borderBg].join(', '),
+    maskImage: `conic-gradient(from ${angleDeg} at center, black ${coneSpread}%, transparent ${coneSpread + 15}%, transparent ${100 - coneSpread - 15}%, black ${100 - coneSpread}%)`,
+    WebkitMaskImage: `conic-gradient(from ${angleDeg} at center, black ${coneSpread}%, transparent ${coneSpread + 15}%, transparent ${100 - coneSpread - 15}%, black ${100 - coneSpread}%)`,
+    opacity: borderOpacity,
+    transition: isVisible ? 'opacity 0.25s ease-out' : 'opacity 0.75s ease-in-out',
+  };
+
+  const fillStyle = {
+    border: '1px solid transparent',
+    background: fillBg.join(', '),
+    maskImage: [
+      'linear-gradient(to bottom, black, black)',
+      'radial-gradient(ellipse at 50% 50%, black 40%, transparent 65%)',
+      'radial-gradient(ellipse at 66% 66%, black 5%, transparent 40%)',
+      'radial-gradient(ellipse at 33% 33%, black 5%, transparent 40%)',
+      'radial-gradient(ellipse at 66% 33%, black 5%, transparent 40%)',
+      'radial-gradient(ellipse at 33% 66%, black 5%, transparent 40%)',
+      `conic-gradient(from ${angleDeg} at center, transparent 5%, black 15%, black 85%, transparent 95%)`,
+    ].join(', '),
+    WebkitMaskImage: [
+      'linear-gradient(to bottom, black, black)',
+      'radial-gradient(ellipse at 50% 50%, black 40%, transparent 65%)',
+      'radial-gradient(ellipse at 66% 66%, black 5%, transparent 40%)',
+      'radial-gradient(ellipse at 33% 33%, black 5%, transparent 40%)',
+      'radial-gradient(ellipse at 66% 33%, black 5%, transparent 40%)',
+      'radial-gradient(ellipse at 33% 66%, black 5%, transparent 40%)',
+      `conic-gradient(from ${angleDeg} at center, transparent 5%, black 15%, black 85%, transparent 95%)`,
+    ].join(', '),
+    maskComposite: maskCompositeValue,
+    WebkitMaskComposite: webkitMaskCompositeValue,
+    opacity: borderOpacity * fillOpacity,
+    mixBlendMode: 'soft-light',
+    transition: isVisible ? 'opacity 0.25s ease-out' : 'opacity 0.75s ease-in-out',
+  };
+
+  const outerGlowStyle = {
+    inset: `${-glowRadius}px`,
+    maskImage: `conic-gradient(from ${angleDeg} at center, black 2.5%, transparent 10%, transparent 90%, black 97.5%)`,
+    WebkitMaskImage: `conic-gradient(from ${angleDeg} at center, black 2.5%, transparent 10%, transparent 90%, black 97.5%)`,
+    opacity: glowOpacity,
+    mixBlendMode: 'plus-lighter',
+    transition: isVisible ? 'opacity 0.25s ease-out' : 'opacity 0.75s ease-in-out',
+  };
+
+  const innerGlowStyle = {
+    inset: `${glowRadius}px`,
+    boxShadow: buildBoxShadow(glowColor, glowIntensity),
+  };
+
+  return html`<div
+    ref=${cardRef}
+    onPointerMove=${handlePointerMove}
+    onPointerEnter=${() => setIsHovered(true)}
+    onPointerLeave=${() => setIsHovered(false)}
+    className=${'relative grid isolate border border-white/10 ' + className}
+    style=${{
+      background: backgroundColor,
+      borderRadius: `${borderRadius}px`,
+      transform: 'translate3d(0, 0, 0.01px)',
+      boxShadow: 'rgba(0,0,0,0.1) 0 1px 2px, rgba(0,0,0,0.1) 0 2px 4px, rgba(0,0,0,0.1) 0 4px 8px, rgba(0,0,0,0.1) 0 8px 16px, rgba(0,0,0,0.1) 0 16px 32px, rgba(0,0,0,0.1) 0 32px 64px',
+    }}
+  >
+    <div className="absolute inset-0 rounded-[inherit] -z-[1]" style=${borderStyle} />
+    <div className="absolute inset-0 rounded-[inherit] -z-[1]" style=${fillStyle} />
+    <span className="absolute pointer-events-none z-[1] rounded-[inherit]" style=${outerGlowStyle}>
+      <span className="absolute rounded-[inherit]" style=${innerGlowStyle} />
+    </span>
+    <div className="flex flex-col relative overflow-auto z-[1]">${children}</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+// Landing Page App
+// ═══════════════════════════════════════════
+
+function SectionLabel({ text }) {
+  return html`<span className="text-xs font-mono text-amber-500/60 tracking-widest uppercase">${text}</span>`;
+}
+
+function CommandAccordion({ id, color, colorBg, icon, name, desc, children }) {
+  const [open, setOpen] = useState(false);
+  return html`<div className="rounded-xl border border-pit-800 bg-pit-900/30 overflow-hidden hover:border-amber-500/20 transition-all">
+    <button onClick=${() => setOpen(!open)} className="w-full flex items-center justify-between p-5 text-left group cursor-pointer">
+      <div className="flex items-center gap-3">
+        <div className=${'w-8 h-8 rounded-lg ' + colorBg + ' flex items-center justify-center'}>${icon}</div>
+        <div>
+          <div className="font-mono font-bold text-white text-sm">${name}</div>
+          <div className="text-xs text-pit-500 mt-0.5">${desc}</div>
+        </div>
+      </div>
+      <svg className=${'w-5 h-5 text-pit-600 group-hover:text-pit-400 transition-all ' + (open ? 'rotate-180' : '')} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+    </button>
+    ${open && html`<div className="px-5 pb-5">${children}</div>`}
+  </div>`;
+}
+
+function Step({ num, title, code, desc, last }) {
+  return html`<div className="flex gap-4">
+    <div className="flex flex-col items-center">
+      <div className="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-mono text-xs font-bold shrink-0">${num}</div>
+      ${!last && html`<div className="w-px flex-1 bg-pit-800" />`}
+    </div>
+    <div className=${last ? '' : 'pb-8'}>
+      <div className="font-mono text-sm text-white mb-1">${title}</div>
+      ${code && html`<div className="rounded-lg bg-pit-900/50 border border-pit-800 px-3 py-2 font-mono text-xs text-pit-400">${code}</div>`}
+      ${desc && html`<div className="text-xs text-pit-500 mt-2">${desc}</div>`}
+    </div>
+  </div>`;
+}
+
+function App() {
+  return html`
+    <div className="min-h-screen bg-pit-950 text-pit-300">
+      
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-pit-800/50" style=${{ background: 'rgba(12,10,9,0.8)', backdropFilter: 'blur(20px) saturate(180%)' }}>
+        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+          <a href="#" className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-md bg-amber-500 flex items-center justify-center">
+              <svg className="w-4 h-4 text-pit-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" /></svg>
+            </div>
+            <span className="font-mono font-bold text-white text-sm tracking-tight">laraperf</span>
+          </a>
+          <div className="flex items-center gap-6 text-sm text-pit-400">
+            <a href="#how-it-works" className="hover:text-amber-400 transition-colors hidden sm:block">How It Works</a>
+            <a href="#commands" className="hover:text-amber-400 transition-colors hidden sm:block">Commands</a>
+            <a href="#install" className="hover:text-amber-400 transition-colors hidden sm:block">Install</a>
+            <a href="https://github.com/mateffy/laraperf" target="_blank" className="inline-flex items-center gap-1.5 text-pit-300 hover:text-white transition-colors">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+              GitHub
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      <section className="relative pt-28 pb-20 md:pt-40 md:pb-32 overflow-hidden" style=${{ minHeight: '90vh' }}>
+        <${GridScan}
+          linesColor="#292524"
+          scanColor="#fbbf24"
+          scanOpacity=${0.35}
+          gridScale=${0.1}
+          scanDirection="pingpong"
+          scanDuration=${2.5}
+          scanDelay=${3}
+          scanGlow=${0.6}
+          scanSoftness=${2}
+          noiseIntensity=${0.015}
+          bloomIntensity=${0.12}
+          sensitivity=${0.5}
+          lineJitter=${0.08}
+          className="absolute inset-0"
+          style=${{ zIndex: 0 }}
+        />
+
+        <${GradualBlur} position="top" height="150px" strength=${4} divCount=${6} curve="ease-out" />
+        <${GradualBlur} position="bottom" height="150px" strength=${3} divCount=${5} curve="ease-out" />
+
+        <div className="relative z-10 max-w-6xl mx-auto px-6 flex flex-col items-center justify-center" style=${{ minHeight: '70vh' }}>
+          <div className="text-center max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs font-mono text-amber-400 mb-8 animate-fade-in">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-slow" />
+              Purpose-built for LLM coding agents
+            </div>
+            <h1 className="text-4xl md:text-6xl font-extrabold text-white tracking-tight leading-[1.1] mb-6 animate-fade-in-delay-1">
+              Your Laravel app${html`<br />`}
+              <span className="text-amber-400">on the pace.</span>
+            </h1>
+            <p className="text-lg md:text-xl text-pit-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in-delay-2">
+              Capture SQL queries, hunt down N+1 patterns, and run <code className="font-mono text-amber-400/80 text-base bg-amber-500/10 px-1.5 py-0.5 rounded">EXPLAIN ANALYZE</code> — all from the terminal. No GUI. No browser. No friction.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 animate-fade-in-delay-3">
+              <${BorderGlow} colors=${['#fbbf24', '#f59e0b', '#d97706']} glowColor="45 90 60" backgroundColor="#0c0a09" borderRadius=${8} glowRadius=${30} glowIntensity=${0.8} animated=${true} fillOpacity=${0.3} className="inline-block">
+                <a href="#install" className="px-6 py-3 font-semibold text-sm text-pit-950 bg-amber-500 hover:bg-amber-400 rounded-lg transition-colors inline-flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  composer require mateffy/laraperf
+                </a>
+              <//>
+              <a href="#how-it-works" className="inline-flex items-center gap-2 px-5 py-2.5 bg-pit-800/60 hover:bg-pit-700/60 text-pit-300 font-medium text-sm rounded-lg border border-pit-700/50 transition-all">
+                See how it works
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+              </a>
+            </div>
+          </div>
+
+          <div className="mt-16 max-w-3xl w-full animate-fade-in-delay-4">
+            <${BorderGlow} colors=${['#fbbf24', '#d97706', '#92400e']} glowColor="40 80 50" backgroundColor="#0c0a09" borderRadius=${12} glowRadius=${25} glowIntensity=${0.6} animated=${false} fillOpacity=${0.2}>
+              <div className="rounded-xl bg-pit-950 overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-pit-800/80 bg-pit-900/40">
+                  <div className="flex gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-pit-700" /><div className="w-2.5 h-2.5 rounded-full bg-pit-700" /><div className="w-2.5 h-2.5 rounded-full bg-amber-500/60" /></div>
+                  <span className="text-[11px] font-mono text-pit-500 ml-2">terminal</span>
+                </div>
+                <div className="p-5 font-mono text-sm leading-relaxed code-block">
+                  <div className="line"><span className="text-pit-600 select-none">$</span> <span className="text-pit-400">php artisan</span> <span className="text-amber-400">perf:watch</span> <span className="text-pit-500">--seconds=120</span></div>
+                  <div className="line text-pit-600 text-xs mt-1">→ session=session-20260416-143201-xK9mQp  pid=47821  duration=300s</div>
+                  <div className="line text-pit-600 text-xs">→ Use <span className="text-amber-400/60">php artisan perf:stop</span> to stop, or wait for the timeout.</div>
+                  <div className="line mt-4"><span className="text-pit-600 select-none">$</span> <span className="text-pit-400">php artisan</span> <span className="text-amber-400">perf:query</span></div>
+                  <div className="line text-pit-500 mt-1">{'{'}</div>
+                  <div className="line">  <span className="text-pit-500">"total_queries":</span> <span className="text-amber-400">183</span><span className="text-pit-600">,</span></div>
+                  <div className="line">  <span className="text-pit-500">"n1_candidate_count":</span> <span className="text-red-400">3</span><span className="text-pit-600">,</span></div>
+                  <div className="line">  <span className="text-pit-500">"slowest_query_ms":</span> <span className="text-red-400">890</span><span className="text-pit-600">,</span></div>
+                  <div className="line">  <span className="text-pit-500">"avg_time_ms":</span> <span className="text-green-400">4.63</span></div>
+                  <div className="line text-pit-500">{'}'}</div>
+                  <div className="line mt-4"><span className="text-pit-600 select-none">$</span> <span className="text-pit-400">php artisan</span> <span className="text-amber-400">perf:explain</span> <span className="text-pit-500">--hash=a1b2c3d4e5f6</span></div>
+                  <div className="line text-pit-500 mt-1">{'{'} "driver": "pgsql", "plan": [...] <span className="animate-blink text-amber-400">█</span></div>
+                </div>
+              </div>
+            <//>
+          </div>
+        </div>
+      </section>
+
+      <section className="relative py-20 md:py-28">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="max-w-3xl mx-auto">
+            <${SectionLabel} text="The problem" />
+            <h2 className="text-2xl md:text-3xl font-bold text-white mt-3 mb-4">Profiling tools are built for humans with browsers.</h2>
+            <p className="text-pit-400 text-lg leading-relaxed">Debugbar, Clockwork, Telescope — they all need a GUI and a human watching. LLM agents can't use long-running processes. Eloquent and Filament generate queries invisible at the source level. <span className="text-white font-medium">The agent never sees the PHP that triggers them.</span></p>
+            <div className="grid md:grid-cols-3 gap-4 mt-12">
+              <${BorderGlow} colors=${['#ef4444', '#fbbf24', '#f59e0b']} glowColor="0 70 70" backgroundColor="#0c0a09" borderRadius=${12} glowRadius=${25} glowIntensity=${0.5} className="group" fillOpacity=${0.15}>
+                <div className="p-5">
+                  <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center mb-4">
+                    <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                  </div>
+                  <h3 className="font-semibold text-white text-sm mb-1.5">No GUI Required</h3>
+                  <p className="text-pit-500 text-sm leading-relaxed">Everything is JSON on stdout. LLM agents read structured data — not rendered HTML.</p>
+                </div>
+              <//>
+              <${BorderGlow} colors=${['#fbbf24', '#f59e0b', '#d97706']} glowColor="45 90 60" backgroundColor="#0c0a09" borderRadius=${12} glowRadius=${25} glowIntensity=${0.5} className="group" fillOpacity=${0.15}>
+                <div className="p-5">
+                  <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center mb-4">
+                    <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  </div>
+                  <h3 className="font-semibold text-white text-sm mb-1.5">Fire-and-Forget Capture</h3>
+                  <p className="text-pit-500 text-sm leading-relaxed">Start a detached watcher. It runs in the background while your app serves real traffic.</p>
+                </div>
+              <//>
+              <${BorderGlow} colors=${['#f59e0b', '#d97706', '#92400e']} glowColor="45 80 50" backgroundColor="#0c0a09" borderRadius=${12} glowRadius=${25} glowIntensity=${0.5} className="group" fillOpacity=${0.15}>
+                <div className="p-5">
+                  <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center mb-4">
+                    <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                  </div>
+                  <h3 className="font-semibold text-white text-sm mb-1.5">Source-Level Trace</h3>
+                  <p className="text-pit-500 text-sm leading-relaxed">N+1 reports point into your <code className="font-mono text-xs text-amber-400/70 bg-pit-800/60 px-1 py-0.5 rounded">app/</code> code — not the framework internals.</p>
+                </div>
+              <//>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="how-it-works" className="relative py-20 md:py-28">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <${SectionLabel} text="The lap" />
+            <h2 className="text-2xl md:text-3xl font-bold text-white mt-3">Three commands. Full circuit.</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <${BorderGlow} colors=${['#fbbf24', '#d97706', '#92400e']} glowColor="45 80 50" backgroundColor="#0c0a09" borderRadius=${12} glowRadius=${25} glowIntensity=${0.5} animated=${true} fillOpacity=${0.15} className="relative">
+              <div className="p-6">
+                <div className="absolute top-3 right-4 text-[60px] font-black text-pit-800/30 select-none">1</div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                  </div>
+                  <div><h3 className="font-bold text-white text-sm">Capture</h3><p className="text-[11px] font-mono text-amber-400/60">perf:watch</p></div>
+                </div>
+                <p className="text-pit-500 text-sm leading-relaxed">Start a session. <code className="font-mono text-xs text-amber-400/70 bg-pit-800/60 px-1 py-0.5 rounded">DB::listen</code> hooks into every PHP-FPM request. Queries land in a shared JSON file.</p>
+              </div>
+            <//>
+            <${BorderGlow} colors=${['#fbbf24', '#d97706', '#92400e']} glowColor="45 80 50" backgroundColor="#0c0a09" borderRadius=${12} glowRadius=${25} glowIntensity=${0.5} animated=${true} fillOpacity=${0.15} className="relative" style=${{ animationDelay: '0.15s' }}>
+              <div className="p-6">
+                <div className="absolute top-3 right-4 text-[60px] font-black text-pit-800/30 select-none">2</div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                  </div>
+                  <div><h3 className="font-bold text-white text-sm">Analyse</h3><p className="text-[11px] font-mono text-amber-400/60">perf:query</p></div>
+                </div>
+                <p className="text-pit-500 text-sm leading-relaxed">Get summaries, slow queries, and N+1 candidates — all as structured JSON pointing into <code className="font-mono text-xs text-amber-400/70 bg-pit-800/60 px-1 py-0.5 rounded">app/</code> code.</p>
+              </div>
+            <//>
+            <${BorderGlow} colors=${['#fbbf24', '#d97706', '#92400e']} glowColor="45 80 50" backgroundColor="#0c0a09" borderRadius=${12} glowRadius=${25} glowIntensity=${0.5} animated=${true} fillOpacity=${0.15} className="relative" style=${{ animationDelay: '0.3s' }}>
+              <div className="p-6">
+                <div className="absolute top-3 right-4 text-[60px] font-black text-pit-800/30 select-none">3</div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                  </div>
+                  <div><h3 className="font-bold text-white text-sm">Plan</h3><p className="text-[11px] font-mono text-amber-400/60">perf:explain</p></div>
+                </div>
+                <p className="text-pit-500 text-sm leading-relaxed">Run <code className="font-mono text-xs text-amber-400/70 bg-pit-800/60 px-1 py-0.5 rounded">EXPLAIN ANALYZE</code> on any captured query. Non-SELECT is safely wrapped. Multi-tenant DB overrides built in.</p>
+              </div>
+            <//>
+          </div>
+        </div>
+      </section>
+
+      <section id="commands" className="relative py-20 md:py-28">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <${SectionLabel} text="Pit wall" />
+            <h2 className="text-2xl md:text-3xl font-bold text-white mt-3">Every command, at a glance.</h2>
+          </div>
+          <div className="space-y-4 max-w-3xl mx-auto">
+            <${CommandAccordion} id="watch" color="green" colorBg="bg-green-500/10" icon=${html`<svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/></svg>`} name="perf:watch" desc="Start a capture session. Returns immediately in detached mode.">
+              <div className="rounded-lg bg-pit-950 border border-pit-800 p-4 font-mono text-xs leading-relaxed">
+                <div className="text-pit-500 mb-2"># Detached mode — spawns a background worker</div>
+                <div><span className="text-amber-400">$</span> php artisan perf:watch</div>
+                <div className="text-pit-600 mt-1">→ session=session-20260416-143201-xK9m  pid=47821  duration=300s</div>
+                <div className="mt-4 text-pit-500 mb-2"># Sync mode — blocks terminal</div>
+                <div><span className="text-amber-400">$</span> php artisan perf:watch --sync --seconds=60</div>
+                <div className="mt-4 text-pit-500 mb-2"># Self-request — capture a URL autonomously</div>
+                <div><span className="text-amber-400">$</span> php artisan perf:watch --seconds=10 --url=/api/deals --sync</div>
+                <div className="mt-4 pt-3 border-t border-pit-800 text-pit-600">Flags: --sync · --seconds=N · --forever · --url=/path · --tag=label</div>
+              </div>
+            <//>
+            <${CommandAccordion} id="query" color="amber" colorBg="bg-amber-500/10" icon=${html`<svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>`} name="perf:query" desc="Read session data. Output summaries, N+1 candidates, or slow queries.">
+              <div className="rounded-lg bg-pit-950 border border-pit-800 p-4 font-mono text-xs leading-relaxed">
+                <div className="text-pit-500 mb-2"># Summary (default)</div>
+                <div><span className="text-amber-400">$</span> php artisan perf:query</div>
+                <div className="mt-3 text-pit-500 mb-2"># N+1 candidates</div>
+                <div><span className="text-amber-400">$</span> php artisan perf:query --type=n1</div>
+                <div className="mt-3 text-pit-500 mb-2"># Slow queries (>200ms)</div>
+                <div><span className="text-amber-400">$</span> php artisan perf:query --type=slow --threshold=200</div>
+                <div className="mt-4 pt-3 border-t border-pit-800 text-pit-600">Types: summary · all · slow · n1 | Flags: --session=last · --threshold · --format=json|table</div>
+              </div>
+            <//>
+            <${CommandAccordion} id="explain" color="blue" colorBg="bg-blue-500/10" icon=${html`<svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>`} name="perf:explain" desc="EXPLAIN ANALYZE any SQL. Multi-tenant DB overrides built in.">
+              <div className="rounded-lg bg-pit-950 border border-pit-800 p-4 font-mono text-xs leading-relaxed">
+                <div className="text-pit-500 mb-2"># Direct SQL</div>
+                <div><span className="text-amber-400">$</span> php artisan perf:explain \</div>
+                <div className="ml-4"><span className="text-pit-400">--sql</span> "select * from estates where id = '834b7d2a'" \</div>
+                <div className="ml-4"><span className="text-pit-400">--connection</span>=tenant <span className="text-pit-400">--db</span>=tenant_dev</div>
+                <div className="mt-3 text-pit-500 mb-2"># Reference a hash from perf:query</div>
+                <div><span className="text-amber-400">$</span> php artisan perf:explain --hash=a1b2c3d4e5f6 --db=tenant_dev</div>
+                <div className="mt-4 pt-3 border-t border-pit-800 text-pit-500">Non-SELECT wrapped in BEGIN/ROLLBACK — no data mutation.</div>
+              </div>
+            <//>
+            <${CommandAccordion} id="stop" color="red" colorBg="bg-red-500/10" icon=${html`<svg className="w-4 h-4 text-red-400" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`} name="perf:stop" desc="Kill detached watchers. SIGTERM → 2s grace → SIGKILL.">
+              <div className="rounded-lg bg-pit-950 border border-pit-800 p-4 font-mono text-xs leading-relaxed">
+                <div><span className="text-amber-400">$</span> php artisan perf:stop</div>
+                <div className="mt-2"><span className="text-amber-400">$</span> php artisan perf:stop --session=session-20260416-143201-xK9m</div>
+              </div>
+            <//>
+            <${CommandAccordion} id="clear" color="pit" colorBg="bg-pit-500/10" icon=${html`<svg className="w-4 h-4 text-pit-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>`} name="perf:clear" desc="Delete all session files. Refuses if watchers are active.">
+              <div className="rounded-lg bg-pit-950 border border-pit-800 p-4 font-mono text-xs leading-relaxed">
+                <div><span className="text-amber-400">$</span> php artisan perf:clear --force</div>
+              </div>
+            <//>
+          </div>
+        </div>
+      </section>
+
+      <section className="relative py-20 md:py-28 overflow-hidden">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="max-w-3xl mx-auto">
+            <${SectionLabel} text="The telemetry" />
+            <h2 className="text-2xl md:text-3xl font-bold text-white mt-3 mb-4">N+1 detection that points to <span className="text-amber-400">your</span> code.</h2>
+            <p className="text-pit-400 text-lg leading-relaxed mb-10">Queries are grouped by normalized SQL template per request batch. When the same template repeats 3+ times, that's an N+1 candidate. Stack traces filtered to <code className="font-mono text-xs text-amber-400/70 bg-pit-800/60 px-1 py-0.5 rounded">app/</code> frames — you see the Resource that caused it, not framework internals.</p>
+          </div>
+          <div className="max-w-3xl mx-auto">
+            <${BorderGlow} colors=${['#fbbf24', '#ef4444', '#92400e']} glowColor="40 90 70" backgroundColor="#0c0a09" borderRadius=${12} glowRadius=${20} glowIntensity=${0.4} animated=${true} fillOpacity=${0.15}>
+              <div className="rounded-xl bg-pit-950 overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-pit-800/80 bg-pit-900/40">
+                  <div className="flex gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-400/60" /><div className="w-2.5 h-2.5 rounded-full bg-amber-400/60" /><div className="w-2.5 h-2.5 rounded-full bg-green-400/60" /></div>
+                  <span className="text-[11px] font-mono text-pit-500 ml-2">n1-candidate.json</span>
+                </div>
+                <div className="p-5 font-mono text-xs leading-relaxed overflow-x-auto">
+                  <pre className="text-pit-400">{`{
+  "count": 47,
+  "table": "crm:contacts",
+  "total_time_ms": 312.4,
+  "normalized_sql": "select * from \\"crm:contacts\\" where ...",
+  "example_source": {
+    "file": "/app/Domains/CRM/Resources/ContactResource/Pages/ListContacts.php",
+    "line": 84,
+    "function": "getTableQuery"
+  }
+}`}</pre>
+                </div>
+              </div>
+            <//>
+          </div>
+        </div>
+      </section>
+
+      <section className="relative py-20 md:py-28">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <${SectionLabel} text="The stint" />
+            <h2 className="text-2xl md:text-3xl font-bold text-white mt-3">Typical agent workflow.</h2>
+          </div>
+          <div className="max-w-2xl mx-auto">
+            <${Step} num="1" title="Start a 2-minute capture window" code="php artisan perf:watch --seconds=120" desc="Returns immediately. Session runs in background." />
+            <${Step} num="2" title="Use the application normally" desc="Browser, API calls — every request appends queries to the session file." />
+            <${Step} num="3" title="Get a summary" code="php artisan perf:query" />
+            <${Step} num="4" title="Investigate the worst N+1" code="php artisan perf:query --type=n1 | jq '.[0]'" />
+            <${Step} num="5" title="Get the query plan" code="php artisan perf:explain --hash=a1b2c3d4e5f6 | jq '.[0].Plan'" last=${true} />
+          </div>
+        </div>
+      </section>
+
+      <section className="relative py-20 md:py-28">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <${SectionLabel} text="Under the hood" />
+            <h2 className="text-2xl md:text-3xl font-bold text-white mt-3">Built for the real world.</h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+            <${BorderGlow} colors=${['#fbbf24', '#92400e', '#78350f']} glowColor="45 80 50" backgroundColor="#0c0a09" borderRadius=${12} glowRadius=${20} glowIntensity=${0.4} fillOpacity=${0.1}>
+              <div className="p-5 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
+                </div>
+                <div><h3 className="font-semibold text-white text-sm mb-1">Atomic writes</h3><p className="text-pit-500 text-sm leading-relaxed">Session files use write-then-rename. No corrupt JSON from concurrent PHP-FPM workers.</p></div>
+              </div>
+            <//>
+            <${BorderGlow} colors=${['#fbbf24', '#92400e', '#78350f']} glowColor="45 80 50" backgroundColor="#0c0a09" borderRadius=${12} glowRadius=${20} glowIntensity=${0.4} fillOpacity=${0.1}>
+              <div className="p-5 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                </div>
+                <div><h3 className="font-semibold text-white text-sm mb-1">Multi-tenancy ready</h3><p className="text-pit-500 text-sm leading-relaxed">Override the database name at runtime per command. No coupling to any tenancy package.</p></div>
+              </div>
+            <//>
+            <${BorderGlow} colors=${['#fbbf24', '#92400e', '#78350f']} glowColor="45 80 50" backgroundColor="#0c0a09" borderRadius=${12} glowRadius=${20} glowIntensity=${0.4} fillOpacity=${0.1}>
+              <div className="p-5 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                </div>
+                <div><h3 className="font-semibold text-white text-sm mb-1">Safe EXPLAIN ANALYZE</h3><p className="text-pit-500 text-sm leading-relaxed">Non-SELECT wrapped in <code className="font-mono text-xs text-amber-400/70 bg-pit-800/60 px-1 py-0.5 rounded">BEGIN/ROLLBACK</code>. Data stays safe.</p></div>
+              </div>
+            <//>
+            <${BorderGlow} colors=${['#fbbf24', '#92400e', '#78350f']} glowColor="45 80 50" backgroundColor="#0c0a09" borderRadius=${12} glowRadius=${20} glowIntensity=${0.4} fillOpacity=${0.1}>
+              <div className="p-5 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                </div>
+                <div><h3 className="font-semibold text-white text-sm mb-1">Near-zero overhead</h3><p className="text-pit-500 text-sm leading-relaxed">No session active: ~1 <code className="font-mono text-xs text-amber-400/70 bg-pit-800/60 px-1 py-0.5 rounded">glob</code> call per request.</p></div>
+              </div>
+            <//>
+            <${BorderGlow} colors=${['#fbbf24', '#92400e', '#78350f']} glowColor="45 80 50" backgroundColor="#0c0a09" borderRadius=${12} glowRadius=${20} glowIntensity=${0.4} fillOpacity=${0.1}>
+              <div className="p-5 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <div><h3 className="font-semibold text-white text-sm mb-1">Auto-pruning</h3><p className="text-pit-500 text-sm leading-relaxed">Only the 10 most recent sessions kept. Old data cleans itself up.</p></div>
+              </div>
+            <//>
+            <${BorderGlow} colors=${['#fbbf24', '#92400e', '#78350f']} glowColor="45 80 50" backgroundColor="#0c0a09" borderRadius=${12} glowRadius=${20} glowIntensity=${0.4} fillOpacity=${0.1}>
+              <div className="p-5 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 4l-4 4 4 4" /></svg>
+                </div>
+                <div><h3 className="font-semibold text-white text-sm mb-1">Source-filtered traces</h3><p className="text-pit-500 text-sm leading-relaxed">Stack traces show your <code className="font-mono text-xs text-amber-400/70 bg-pit-800/60 px-1 py-0.5 rounded">app/</code> code only.</p></div>
+              </div>
+            <//>
+          </div>
+        </div>
+      </section>
+
+      <section id="install" className="relative py-20 md:py-28 overflow-hidden">
+        <div className="absolute inset-0" style=${{ opacity: 0.2 }}>
+          <${GridScan}
+            linesColor="#292524"
+            scanColor="#fbbf24"
+            scanOpacity=${0.2}
+            gridScale=${0.15}
+            scanDirection="forward"
+            scanDuration=${4}
+            scanDelay=${5}
+            scanGlow=${0.3}
+            scanSoftness=${3}
+            noiseIntensity=${0.005}
+            bloomIntensity=${0.08}
+            sensitivity=${0.3}
+            lineJitter=${0}
+          />
+        </div>
+        <${GradualBlur} position="top" height="120px" strength=${3} divCount=${5} curve="ease-out" />
+        <div className="relative z-10 max-w-6xl mx-auto px-6">
+          <div className="text-center max-w-3xl mx-auto">
+            <${SectionLabel} text="Green flag" />
+            <h2 className="text-2xl md:text-3xl font-bold text-white mt-3 mb-6">Install and go.</h2>
+            <div className="max-w-lg mx-auto">
+              <${BorderGlow} colors=${['#fbbf24', '#f59e0b', '#22c55e']} glowColor="45 90 60" backgroundColor="#0c0a09" borderRadius=${12} glowRadius=${30} glowIntensity=${0.8} animated=${true} fillOpacity=${0.25}>
+                <div className="rounded-xl bg-pit-950 overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-2.5 border-b border-pit-800/80 bg-pit-900/40">
+                    <div className="flex gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-pit-700" /><div className="w-2.5 h-2.5 rounded-full bg-pit-700" /><div className="w-2.5 h-2.5 rounded-full bg-green-500/60" /></div>
+                    <span className="text-[11px] font-mono text-pit-500 ml-2">terminal</span>
+                  </div>
+                  <div className="px-5 py-5 font-mono text-sm">
+                    <div className="text-pit-300">
+                      <span className="text-pit-600 select-none">$</span> <span className="text-green-400">composer</span> <span className="text-pit-400">require</span> <span className="text-amber-400">mateffy/laraperf</span>
+                    </div>
+                    <div className="mt-6 text-pit-500 text-xs">No config publish step needed. Auto-discovers the service provider.<br />All data lives in <code className="text-amber-400/70 bg-pit-800/60 px-1 py-0.5 rounded">storage/perf/</code>.</div>
+                  </div>
+                </div>
+              <//>
+            </div>
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <a href="https://github.com/mateffy/laraperf" className="inline-flex items-center gap-2 px-5 py-2.5 bg-pit-800/60 hover:bg-pit-700/60 text-white font-semibold text-sm rounded-lg border border-pit-700/50 transition-all">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                View on GitHub
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-pit-800/50 bg-pit-950">
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-md bg-amber-500 flex items-center justify-center">
+                <svg className="w-3.5 h-3.5 text-pit-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" /></svg>
+              </div>
+              <span className="font-mono font-bold text-white text-sm tracking-tight">laraperf</span>
+              <span className="text-xs text-pit-600 ml-2">MIT License</span>
+            </div>
+            <div className="flex items-center gap-6 text-sm text-pit-500">
+              <a href="https://github.com/mateffy/laraperf" className="hover:text-amber-400 transition-colors">GitHub</a>
+              <a href="https://packagist.org/packages/mateffy/laraperf" className="hover:text-amber-400 transition-colors">Packagist</a>
+            </div>
+          </div>
+          <div className="mt-8 pt-6 border-t border-pit-800/30 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="font-mono text-xs text-pit-700">composer require mateffy/laraperf</div>
+            <div className="font-mono text-[10px] text-pit-800 tracking-widest uppercase">Capture · Analyse · Plan</div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  `;
+}
+
+const root = createRoot(document.getElementById('root'));
+root.render(html`<${App} />`);
+  </script>
+</body>
+</html>

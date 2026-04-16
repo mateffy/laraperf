@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html><head><title>Test</title></head>
+<body><div id="root"></div>
+<script type="module">
+
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'https://esm.sh/react@18.3.1';
+import { createRoot } from 'https://esm.sh/react-dom@18.3.1';
+import htm from 'https://esm.sh/htm@3.1.1';
+import * as THREE from 'https://esm.sh/three@0.170.0';
+
+const html = htm.bind(React.createElement);
+
+// ═══════════════════════════════════════════
+// GridScan — adapted from react-bits
+const html = htm.bind(React.createElement);
+function App() {
+  return html`<div style=${{ color: 'white' }}>Imports work!</div>`;
+}
+const root = createRoot(document.getElementById('root'));
+root.render(html`<${App} />`);
+</script>
+</body></html>
