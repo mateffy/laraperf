@@ -1,8 +1,8 @@
-<img src="./resources/images/header.webp" alt="Terminal screenshot" width="100%" align="center" />
-
 # laraperf
 
 Laravel performance analysis CLI tool for LLM coding agents. Captures SQL queries, detects N+1 patterns, and runs `EXPLAIN ANALYZE` — all through short-lived Artisan commands that output structured JSON to stdout. No browser or GUI required.
+
+<img src="./resources/images/header.webp" alt="Terminal screenshot" width="100%" align="center" />
 
 <br>
 
