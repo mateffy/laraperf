@@ -2,25 +2,7 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Facades\File;
 use Mateffy\Laraperf\Storage\PerfStore;
-
-beforeEach(function () {
-    $this->perf_path = storage_path('perf');
-
-    if (File::isDirectory($this->perf_path)) {
-        File::deleteDirectory($this->perf_path);
-    }
-    File::ensureDirectoryExists($this->perf_path);
-
-    $this->store = new PerfStore;
-});
-
-afterEach(function () {
-    if (File::isDirectory($this->perf_path)) {
-        File::deleteDirectory($this->perf_path);
-    }
-});
 
 it('creates a new empty session', function () {
     $session = $this->store->emptySession('test-session-1');

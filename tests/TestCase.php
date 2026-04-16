@@ -18,10 +18,11 @@ class TestCase extends Orchestra
 
     protected function setUp(): void
     {
+        $this->perf_path = sys_get_temp_dir().'/laraperf-test-'.getmypid();
+
         parent::setUp();
 
-        $this->perf_path = storage_path('perf');
-        $this->store = new PerfStore;
+        $this->store = app(PerfStore::class);
 
         // Clean up before each test
         if (File::isDirectory($this->perf_path)) {
@@ -48,11 +49,14 @@ class TestCase extends Orchestra
 
     public function getEnvironmentSetUp($app)
     {
-        config()->set('database.default', 'testing');
-        config()->set('database.connections.testing', [
-            'driver' => 'sqlite',
-            'database' => ':memory:',
-            'prefix' => '',
+        config([
+            'laraperf.storage_path' => sys_get_temp_dir().'/laraperf-test-'.getmypid(),
+            'database.default' => 'testing',
+            'database.connections.testing' => [
+                'driver' => 'sqlite',
+                'database' => ':memory:',
+                'prefix' => '',
+            ],
         ]);
     }
 

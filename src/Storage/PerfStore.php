@@ -20,10 +20,10 @@ class PerfStore
 
     protected string $base_path;
 
-    public function __construct()
+    public function __construct(?string $base_path = null)
     {
-        $this->base_path = storage_path('perf');
-        File::ensureDirectoryExists($this->base_path);
+        $this->base_path = $base_path ?? config('laraperf.storage_path', storage_path('perf'));
+        @mkdir($this->base_path, 0755, true);
     }
 
     // -------------------------------------------------------------------------

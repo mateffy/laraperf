@@ -26,4 +26,14 @@ return [
     | Leave blank to use whatever the connection config already specifies.
     */
     'db' => env('PERF_DB', null),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Storage path
+    |--------------------------------------------------------------------------
+    | The directory where perf session JSON files are stored.
+    | Defaults to storage_path('perf'). Override this for testing
+    | or multi-tenant setups.
+    */
+    'storage_path' => env('PERF_STORAGE_PATH', storage_path('perf')),
 ];

@@ -6,10 +6,9 @@ use Mateffy\Laraperf\Analysis\QueryNormalizer;
 use Mateffy\Laraperf\Commands\PerfClearCommand;
 use Mateffy\Laraperf\Commands\PerfExplainCommand;
 use Mateffy\Laraperf\Commands\PerfQueryCommand;
-use Mateffy\Laraperf\Storage\PerfStore;
 
 it('perf:clear deletes all sessions', function () {
-    $store = new PerfStore;
+    $store = $this->store;
     $store->writeSession('to-delete', $store->emptySession('to-delete'));
 
     expect($store->sessionExists('to-delete'))->toBeTrue();
@@ -21,7 +20,7 @@ it('perf:clear deletes all sessions', function () {
 });
 
 it('perf:clear refuses when watchers are active', function () {
-    $store = new PerfStore;
+    $store = $this->store;
     $store->writeSession('active-session', $store->emptySession('active-session'));
     $store->writeWatcherPid(99999, 'active-session'); // fake PID
 
@@ -32,7 +31,7 @@ it('perf:clear refuses when watchers are active', function () {
 });
 
 it('perf:query returns summary for completed session', function () {
-    $store = new PerfStore;
+    $store = $this->store;
 
     $session = $store->emptySession('query-test-session');
     $session['status'] = 'completed';
@@ -49,7 +48,7 @@ it('perf:query returns summary for completed session', function () {
 });
 
 it('perf:query returns N+1 candidates', function () {
-    $store = new PerfStore;
+    $store = $this->store;
     $normalizer = new QueryNormalizer;
 
     $session = $store->emptySession('n1-test-session');
@@ -79,7 +78,7 @@ it('perf:query returns N+1 candidates', function () {
 });
 
 it('perf:query returns combined output by default', function () {
-    $store = new PerfStore;
+    $store = $this->store;
     $normalizer = new QueryNormalizer;
 
     $session = $store->emptySession('combined-test-session');
@@ -109,7 +108,7 @@ it('perf:query returns combined output by default', function () {
 });
 
 it('perf:query combines --summary --slow flags', function () {
-    $store = new PerfStore;
+    $store = $this->store;
 
     $session = $store->emptySession('multi-flag-session');
     $session['status'] = 'completed';
@@ -144,7 +143,7 @@ it('perf:explain runs EXPLAIN on SQLite', function () {
 });
 
 it('perf:explain looks up hash from last session', function () {
-    $store = new PerfStore;
+    $store = $this->store;
     $normalizer = new QueryNormalizer;
 
     $hash = $normalizer->hash('select * from "hash_test"');
@@ -168,7 +167,7 @@ it('perf:explain looks up hash from last session', function () {
 });
 
 it('perf:explain fails with unknown hash', function () {
-    $store = new PerfStore;
+    $store = $this->store;
 
     $session = $store->emptySession('empty-hash-session');
     $session['status'] = 'completed';

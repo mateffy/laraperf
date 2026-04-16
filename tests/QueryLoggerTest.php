@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 use Mateffy\Laraperf\Analysis\QueryNormalizer;
 use Mateffy\Laraperf\QueryLogger;
-use Mateffy\Laraperf\Storage\PerfStore;
 
 it('starts and stops capturing', function () {
-    $store = new PerfStore;
+    $store = $this->store;
     $normalizer = new QueryNormalizer;
     $logger = new QueryLogger($store, $normalizer);
 
@@ -24,7 +23,7 @@ it('starts and stops capturing', function () {
 });
 
 it('captures queries fired via DB::listen', function () {
-    $store = new PerfStore;
+    $store = $this->store;
     $normalizer = new QueryNormalizer;
     $logger = new QueryLogger($store, $normalizer);
 
@@ -50,7 +49,7 @@ it('captures queries fired via DB::listen', function () {
 });
 
 it('does not capture queries when inactive', function () {
-    $store = new PerfStore;
+    $store = $this->store;
     $normalizer = new QueryNormalizer;
     $logger = new QueryLogger($store, $normalizer);
 
@@ -65,7 +64,7 @@ it('does not capture queries when inactive', function () {
 });
 
 it('filters stack traces to app frames', function () {
-    $store = new PerfStore;
+    $store = $this->store;
     $normalizer = new QueryNormalizer;
     $logger = new QueryLogger($store, $normalizer);
 
@@ -92,7 +91,7 @@ it('filters stack traces to app frames', function () {
 });
 
 it('rotates batch ID', function () {
-    $store = new PerfStore;
+    $store = $this->store;
     $normalizer = new QueryNormalizer;
     $logger = new QueryLogger($store, $normalizer);
 

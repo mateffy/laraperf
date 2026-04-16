@@ -18,11 +18,6 @@ it('registers all perf commands', function () {
 });
 
 it('does not attach DB::listen when no active session', function () {
-    $perf_path = storage_path('perf');
-    if (is_dir($perf_path)) {
-        array_map('unlink', glob($perf_path.'/*.json'));
-    }
-
     $store = app(PerfStore::class);
     expect($store->activeSession())->toBeNull();
 });
