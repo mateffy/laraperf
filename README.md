@@ -2,6 +2,8 @@
 
 Laravel performance analysis CLI tool for LLM coding agents. Captures SQL queries, detects N+1 patterns, and runs `EXPLAIN ANALYZE` — all through short-lived Artisan commands that output structured JSON to stdout. No browser or GUI required.
 
+<br>
+
 ## Why this exists
 
 Standard profiling tools (Debugbar, Clockwork, Telescope) are browser-first. LLM agents work via commands and stdout, not GUIs. Eloquent and Filament generate queries that are invisible at the source level — the agent never sees the PHP that triggers them.
@@ -11,6 +13,8 @@ laraperf bridges this gap:
 - **Capture** — `DB::listen` attaches to every PHP-FPM request while a session is active. Each request appends its queries to a shared JSON file. The agent reads the file after the fact.
 - **Analyse** — `perf:query` outputs structured JSON: summaries, slow queries, N+1 candidates with source file/line pointing into `app/` code (vendor frames stripped).
 - **Plan** — `perf:explain` runs `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)` against any SQL string, with a runtime database-name override for multi-tenant setups.
+
+<br>
 
 ## Installation
 
@@ -26,6 +30,8 @@ No publish step needed — config is auto-merged. Environment variables:
 PERF_CONNECTION=pgsql    # Default DB connection for perf commands
 PERF_DB=                 # Override database name (for multi-tenant)
 ```
+
+<br>
 
 ## Commands
 
@@ -152,6 +158,8 @@ Removes all session files from `storage/perf/`. Refuses to run if active watcher
 php artisan perf:clear --force
 ```
 
+<br>
+
 ## How it works
 
 ### PHP-FPM interception
@@ -184,6 +192,8 @@ Add to `.gitignore`:
 
 `N1Detector` groups queries by `(batch_id, normalized_sql_hash)`. Two queries match when their SQL is structurally identical after stripping all literal values. Groups with `count >= 3` (default threshold) are reported as N+1 candidates. Each PHP-FPM request gets a unique `batch_id`, so N+1s are detected per-request, not across requests.
 
+<br>
+
 ## Typical workflow
 
 ```bash
@@ -208,6 +218,8 @@ php artisan perf:explain --hash=a1b2c3d4e5f6 | jq '.[0].Plan'
 # 6. Stop early if needed
 php artisan perf:stop
 ```
+
+<br>
 
 ## Programmatic testing API
 
@@ -304,6 +316,8 @@ Constraint methods available on `test()`:
 | `->maxMemory(string\|int)` | Max memory usage ("10M", "512KB", or bytes) |
 | `->maxN1Candidates(int, int)` | Max N+1 candidate count (with optional threshold) |
 | `->noN1Patterns(int)` | Require zero N+1 patterns |
+
+<br>
 
 ## License
 
