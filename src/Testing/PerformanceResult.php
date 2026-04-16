@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mateffy\Laraperf\Testing;
 
 use Illuminate\Support\Collection;
+use Mateffy\Laraperf\Analysis\N1Candidate;
 use Mateffy\Laraperf\Analysis\N1Detector;
 use Throwable;
 
@@ -25,7 +26,7 @@ class PerformanceResult
     /**
      * Timeline events with timestamps for detailed analysis.
      *
-     * @var array<int, array{label: string, timestamp: float, memory: int, metadata: array}>
+     * @var array<int, array{label: string, timestamp: float, memory: int, metadata: array<string, mixed>}>
      */
     public readonly array $timeline;
 
@@ -37,7 +38,7 @@ class PerformanceResult
      * @param  int  $peakMemory  Peak memory usage during capture (bytes)
      * @param  Collection<int, QueryRecord>  $queries  All captured queries
      * @param  ?Throwable  $exception  Any exception thrown during execution
-     * @param  array  $timeline  Sequential timeline events with metadata
+     * @param  array<int, array{label: string, timestamp: float, memory: int, metadata: array<string, mixed>}>  $timeline  Sequential timeline events with metadata
      * @param  string  $sessionId  Unique identifier for this capture session
      */
     public function __construct(
@@ -88,7 +89,7 @@ class PerformanceResult
      */
     public function netMemoryBytes(): int
     {
-        return $this->peakMemory - $this->startMemory;
+        return max(0, $this->peakMemory - $this->startMemory);
     }
 
     /**
@@ -124,7 +125,7 @@ class PerformanceResult
      */
     public function totalQueryTimeMs(): float
     {
-        return $this->queries->sum('time_ms');
+        return (float) $this->queries->sum('time_ms');
     }
 
     /**
@@ -142,7 +143,7 @@ class PerformanceResult
      */
     public function slowestQueryTimeMs(): float
     {
-        return $this->queries->max('time_ms') ?? 0;
+        return (float) ($this->queries->max('time_ms') ?? 0);
     }
 
     /**
@@ -188,11 +189,11 @@ class PerformanceResult
     /**
      * Get unique table names that were queried.
      *
-     * @return array<string>
+     * @return list<string>
      */
     public function tablesAccessed(): array
     {
-        return $this->queries->pluck('table')->unique()->filter()->values()->toArray();
+        return $this->queries->pluck('table')->unique()->filter()->values()->map(fn ($v) => (string) $v)->toArray();
     }
 
     // -------------------------------------------------------------------------
@@ -234,12 +235,12 @@ class PerformanceResult
     /**
      * Get events between two timestamps.
      *
-     * @return array<int, array{label: string, timestamp: float, memory: int, metadata: array}>
+     * @return array<int, array{label: string, timestamp: float, memory: int, metadata: array<string, mixed>}>
      */
     public function timelineBetween(float $start, float $end): array
     {
-        return array_filter($this->timeline, fn ($event) => $event['timestamp'] >= $start && $event['timestamp'] <= $end
-        );
+        return array_values(array_filter($this->timeline, fn (array $event) => ($event['timestamp'] ?? 0) >= $start && ($event['timestamp'] ?? 0) <= $end
+        ));
     }
 
     /**
@@ -254,7 +255,7 @@ class PerformanceResult
             return null;
         }
 
-        return $to['memory'] - $from['memory'];
+        return (int) $to['memory'] - (int) $from['memory'];
     }
 
     /**
@@ -269,7 +270,7 @@ class PerformanceResult
             return null;
         }
 
-        return round(($to['timestamp'] - $from['timestamp']) * 1000, 3);
+        return round(((float) $to['timestamp'] - (float) $from['timestamp']) * 1000, 3);
     }
 
     // -------------------------------------------------------------------------
@@ -278,6 +279,8 @@ class PerformanceResult
 
     /**
      * Summarize results for quick human review.
+     *
+     * @return array<string, mixed>
      */
     public function summary(): array
     {
@@ -295,6 +298,8 @@ class PerformanceResult
 
     /**
      * Convert to JSON-serializable array.
+     *
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {
@@ -332,19 +337,24 @@ class PerformanceResult
      */
     public function toJson(int $options = 0): string
     {
-        return json_encode($this->toArray(), $options);
+        $result = json_encode($this->toArray(), $options);
+
+        return $result !== false ? $result : '';
     }
 
     // -------------------------------------------------------------------------
     // Internal
     // -------------------------------------------------------------------------
 
+    /**
+     * @param  array<int, array{label: string, timestamp: float, memory: int, metadata: array<string, mixed>}>  $timeline
+     * @return array<int, array{label: string, timestamp: float, memory: int, metadata: array<string, mixed>}>
+     */
     private function normalizeTimeline(array $timeline, float $startTime, float $endTime): array
     {
-        // Ensure start and end events exist
         $events = $timeline;
 
-        if (empty($events) || $events[0]['label'] !== 'start') {
+        if (empty($events) || ($events[0]['label'] ?? '') !== 'start') {
             array_unshift($events, [
                 'label' => 'start',
                 'timestamp' => $startTime,
@@ -354,7 +364,7 @@ class PerformanceResult
         }
 
         $last = end($events);
-        if ($last === false || $last['label'] !== 'end') {
+        if ($last === false || ($last['label'] ?? '') !== 'end') {
             $events[] = [
                 'label' => 'end',
                 'timestamp' => $endTime,
@@ -366,10 +376,13 @@ class PerformanceResult
         return array_values($events);
     }
 
+    /**
+     * @return array{label: string, timestamp: float, memory: int, metadata: array<string, mixed>}|null
+     */
     private function findTimelineEvent(string $label): ?array
     {
         foreach ($this->timeline as $event) {
-            if ($event['label'] === $label) {
+            if (is_array($event) && ($event['label'] ?? '') === $label) {
                 return $event;
             }
         }

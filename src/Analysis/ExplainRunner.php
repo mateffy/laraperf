@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mateffy\Laraperf\Analysis;
 
+use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -17,27 +18,11 @@ use Throwable;
 class ExplainRunner
 {
     /**
-     * Run EXPLAIN ANALYZE on the given raw SQL (with bindings already
-     * interpolated — use QueryExecuted::toRawSql() or substitute manually).
-     *
-     * Pass $database to override the database name on the connection at runtime,
-     * without touching any other connection config (host, credentials, etc.).
-     * This is the correct way to target a specific tenant DB without coupling
-     * to the tenancy package.
-     *
-     * @return array{
-     *     driver: string,
-     *     connection: string,
-     *     database: string|null,
-     *     plan: array|string|null,
-     *     error: string|null,
-     * }
+     * @return array{driver: string, connection: string, database: string|null, plan: array|string|null, error: string|null}
      */
     public function run(string $raw_sql, string $connection = 'tenant', ?string $database = null): array
     {
         if ($database !== null) {
-            // Patch the database name on the named connection and force a fresh
-            // connection so the override takes effect immediately.
             config(["database.connections.{$connection}.database" => $database]);
             DB::purge($connection);
         }
@@ -64,26 +49,29 @@ class ExplainRunner
 
     // -------------------------------------------------------------------------
 
-    protected function runPostgres(mixed $db, string $raw_sql, string $connection, ?string $database): array
+    /**
+     * @return array{driver: string, connection: string, database: string|null, plan: array|string|null, error: string|null}
+     */
+    protected function runPostgres(ConnectionInterface $db, string $raw_sql, string $connection, ?string $database): array
     {
         $is_select = $this->isSelect($raw_sql);
 
         if ($is_select) {
-            // Safe to run directly — EXPLAIN ANALYZE on a SELECT never mutates.
             $rows = $db->select(
                 'EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) '.$raw_sql
             );
+
+            $planData = isset($rows[0]->{'QUERY PLAN'}) ? $rows[0]->{'QUERY PLAN'} : $rows;
 
             return [
                 'driver' => 'pgsql',
                 'connection' => $connection,
                 'database' => $database,
-                'plan' => $rows[0]->{'QUERY PLAN'} ?? $rows,
+                'plan' => $planData,
                 'error' => null,
             ];
         }
 
-        // For mutating statements wrap in a transaction and roll back.
         $plan = null;
 
         try {
@@ -91,8 +79,7 @@ class ExplainRunner
                 $rows = $db->select(
                     'EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) '.$raw_sql
                 );
-                $plan = $rows[0]->{'QUERY PLAN'} ?? $rows;
-                // Force rollback after collecting the plan.
+                $plan = isset($rows[0]->{'QUERY PLAN'}) ? $rows[0]->{'QUERY PLAN'} : $rows;
                 throw new \RuntimeException('__laraperf_rollback__');
             });
         } catch (\RuntimeException $e) {
@@ -110,7 +97,10 @@ class ExplainRunner
         ];
     }
 
-    protected function runGeneric(mixed $db, string $raw_sql, string $connection, string $driver, ?string $database): array
+    /**
+     * @return array{driver: string, connection: string, database: string|null, plan: array, error: string|null}
+     */
+    protected function runGeneric(ConnectionInterface $db, string $raw_sql, string $connection, string $driver, ?string $database): array
     {
         $rows = $db->select('EXPLAIN '.$raw_sql);
 

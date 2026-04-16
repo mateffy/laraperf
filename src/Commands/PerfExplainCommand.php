@@ -49,10 +49,10 @@ class PerfExplainCommand extends Command
             return self::FAILURE;
         }
 
-        $connection = $this->option('connection')
-            ?: config('laraperf.connection', config('database.default', 'pgsql'));
+        $connection = (string) ($this->option('connection')
+            ?: config('laraperf.connection', config('database.default', 'pgsql')));
 
-        $database = $this->option('db') ?: config('laraperf.db') ?: null;
+        $database = $this->option('db') ? (string) $this->option('db') : config('laraperf.db');
 
         $label = $database ? "{$connection} (db={$database})" : $connection;
         $raw_output = $this->output->getOutput();
@@ -73,17 +73,16 @@ class PerfExplainCommand extends Command
     protected function resolveSql(): ?string
     {
         if ($sql = $this->option('sql')) {
-            return $sql;
+            return is_string($sql) ? $sql : null;
         }
 
         $hash = $this->option('hash');
 
-        if (! $hash) {
+        if (! $hash || ! is_string($hash)) {
             return null;
         }
 
-        // Find a query with this hash in the session
-        $session_id = $this->option('session') ?? 'last';
+        $session_id = (string) ($this->option('session') ?? 'last');
         $session = $session_id === 'last'
             ? $this->store->latestSession()
             : $this->store->readSession($session_id);
@@ -95,6 +94,9 @@ class PerfExplainCommand extends Command
         }
 
         foreach ($session['queries'] ?? [] as $query) {
+            if (! is_array($query)) {
+                continue;
+            }
             if (($query['hash'] ?? '') === $hash) {
                 return $query['raw_sql'] ?? $query['sql'] ?? null;
             }

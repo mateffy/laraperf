@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mateffy\Laraperf;
 
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use Mateffy\Laraperf\Analysis\ExplainRunner;
@@ -51,7 +52,7 @@ class LaraperfServiceProvider extends PackageServiceProvider
             ]);
     }
 
-    public function registeringPackage()
+    public function registeringPackage(): void
     {
         $this->app->singleton(PerfStore::class);
         $this->app->singleton(QueryNormalizer::class);
@@ -61,6 +62,7 @@ class LaraperfServiceProvider extends PackageServiceProvider
         // QueryLogger is request-scoped (not a singleton) so each request gets
         // its own batch_id. The shared session ID is read from disk.
         $this->app->bind(QueryLogger::class, function ($app) {
+            /** @var Application $app */
             return new QueryLogger(
                 store: $app->make(PerfStore::class),
                 normalizer: $app->make(QueryNormalizer::class),
@@ -68,7 +70,7 @@ class LaraperfServiceProvider extends PackageServiceProvider
         });
     }
 
-    public function packageBooted()
+    public function packageBooted(): void
     {
         // Attach the DB listener to the current process if a session is active.
         $this->maybeAttachListener();
@@ -82,7 +84,6 @@ class LaraperfServiceProvider extends PackageServiceProvider
      */
     protected function maybeAttachListener(): void
     {
-        /** @var PerfStore $store */
         $store = $this->app->make(PerfStore::class);
 
         $session = $store->activeSession();
@@ -93,7 +94,6 @@ class LaraperfServiceProvider extends PackageServiceProvider
 
         $session_id = $session['session_id'];
 
-        /** @var QueryLogger $logger */
         $logger = $this->app->make(QueryLogger::class);
         $logger->start($session_id);
     }

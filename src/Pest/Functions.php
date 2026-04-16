@@ -6,7 +6,6 @@ namespace Mateffy\Laraperf\Pest;
 
 use Closure;
 use Mateffy\Laraperf\Testing\PerformanceResult;
-use Pest\PendingCalls\TestCall;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -40,7 +39,7 @@ function has_perf(): bool
         return false;
     }
 
-    return $test->hasPerformanceData();
+    return (bool) $test->hasPerformanceData();
 }
 
 /**
@@ -52,7 +51,6 @@ function has_perf(): bool
  * @template T
  *
  * @param  Closure(): T  $callback
- * @return PerformanceResult<T>
  */
 function measure(Closure $callback): PerformanceResult
 {
@@ -71,58 +69,88 @@ function measure(Closure $callback): PerformanceResult
 // TestCall Extensions
 // -------------------------------------------------------------------------
 
+use Pest\PendingCalls\TestCall;
+
 /**
  * Extend Pest's test() with performance constraint methods.
  *
  * These methods work by setting constraints that are validated in afterEach.
  */
 if (method_exists(TestCall::class, 'extend')) {
-    // Maximum number of queries
     TestCall::extend('maxQueryCount', function (int|Closure $limit) {
-        return $this->with(['_perf_constraints' => array_merge(
-            $this->data['_perf_constraints'] ?? [],
-            ['max_queries' => $limit]
-        )]);
+        if ($limit instanceof Closure) {
+            $limit = $limit();
+        }
+
+        /** @var TestCall $testCall */
+        $testCall = $this;
+        $data = $testCall->data ?? [];
+        $existing = is_array($data) && array_key_exists('_perf_constraints', $data) ? $data['_perf_constraints'] : [];
+
+        return $testCall->with(['_perf_constraints' => array_merge($existing, ['max_queries' => $limit])]);
     });
 
-    // Maximum duration for any single query (ms)
-    TestCall::extend('maxQueryDuration', function (float|Closure $ms) {
-        return $this->with(['_perf_constraints' => array_merge(
-            $this->data['_perf_constraints'] ?? [],
-            ['max_query_duration_ms' => $ms]
-        )]);
+    TestCall::extend('maxQueryDuration', function (float|int|Closure $ms) {
+        if ($ms instanceof Closure) {
+            $ms = $ms();
+        }
+
+        /** @var TestCall $testCall */
+        $testCall = $this;
+        $data = $testCall->data ?? [];
+        $existing = is_array($data) && array_key_exists('_perf_constraints', $data) ? $data['_perf_constraints'] : [];
+
+        return $testCall->with(['_perf_constraints' => array_merge($existing, ['max_query_duration_ms' => $ms])]);
     });
 
-    // Maximum total test duration (ms)
-    TestCall::extend('maxTotalDuration', function (float|Closure $ms) {
-        return $this->with(['_perf_constraints' => array_merge(
-            $this->data['_perf_constraints'] ?? [],
-            ['max_duration_ms' => $ms]
-        )]);
+    TestCall::extend('maxTotalDuration', function (float|int|Closure $ms) {
+        if ($ms instanceof Closure) {
+            $ms = $ms();
+        }
+
+        /** @var TestCall $testCall */
+        $testCall = $this;
+        $data = $testCall->data ?? [];
+        $existing = is_array($data) && array_key_exists('_perf_constraints', $data) ? $data['_perf_constraints'] : [];
+
+        return $testCall->with(['_perf_constraints' => array_merge($existing, ['max_duration_ms' => $ms])]);
     });
 
     // Alternative naming (alias)
-    TestCall::extend('maxDuration', function (float|Closure $ms) {
+    TestCall::extend('maxDuration', function (float|int|Closure $ms) {
+        if ($ms instanceof Closure) {
+            $ms = $ms();
+        }
+
         return $this->maxTotalDuration($ms);
     });
 
-    // Maximum memory usage (string like "10M" or bytes)
     TestCall::extend('maxMemory', function (string|int|Closure $limit) {
-        return $this->with(['_perf_constraints' => array_merge(
-            $this->data['_perf_constraints'] ?? [],
-            ['max_memory_bytes' => $limit]
-        )]);
+        if ($limit instanceof Closure) {
+            $limit = $limit();
+        }
+
+        /** @var TestCall $testCall */
+        $testCall = $this;
+        $data = $testCall->data ?? [];
+        $existing = is_array($data) && array_key_exists('_perf_constraints', $data) ? $data['_perf_constraints'] : [];
+
+        return $testCall->with(['_perf_constraints' => array_merge($existing, ['max_memory_bytes' => $limit])]);
     });
 
-    // Maximum N+1 candidate count
     TestCall::extend('maxN1Candidates', function (int|Closure $limit, int $threshold = 3) {
-        return $this->with(['_perf_constraints' => array_merge(
-            $this->data['_perf_constraints'] ?? [],
-            ['max_n1_candidates' => $limit, 'n1_threshold' => $threshold]
-        )]);
+        if ($limit instanceof Closure) {
+            $limit = $limit();
+        }
+
+        /** @var TestCall $testCall */
+        $testCall = $this;
+        $data = $testCall->data ?? [];
+        $existing = is_array($data) && array_key_exists('_perf_constraints', $data) ? $data['_perf_constraints'] : [];
+
+        return $testCall->with(['_perf_constraints' => array_merge($existing, ['max_n1_candidates' => $limit, 'n1_threshold' => $threshold])]);
     });
 
-    // Require zero N+1 patterns (convenience method)
     TestCall::extend('noN1Patterns', function (int $threshold = 3) {
         return $this->maxN1Candidates(0, $threshold);
     });

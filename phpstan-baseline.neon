@@ -3,43 +3,19 @@ parameters:
 		-
 			message: '#^Called ''env'' outside of the config directory which returns null when the config is cached, use ''config''\.$#'
 			identifier: larastan.noEnvCallsOutsideOfConfig
-			count: 3
+			count: 4
 			path: config/laraperf.php
-
-		-
-			message: '#^Cannot access offset 0 on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 2
-			path: src/Analysis/ExplainRunner.php
 
 		-
 			message: '#^Cannot access property \$QUERY PLAN on mixed\.$#'
 			identifier: property.nonObject
-			count: 2
-			path: src/Analysis/ExplainRunner.php
-
-		-
-			message: '#^Cannot call method select\(\) on mixed\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: src/Analysis/ExplainRunner.php
-
-		-
-			message: '#^Cannot call method transaction\(\) on mixed\.$#'
-			identifier: method.nonObject
-			count: 1
+			count: 4
 			path: src/Analysis/ExplainRunner.php
 
 		-
 			message: '#^Method Mateffy\\Laraperf\\Analysis\\ExplainRunner\:\:run\(\) return type has no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
-			path: src/Analysis/ExplainRunner.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Analysis\\ExplainRunner\:\:run\(\) should return array\{driver\: string, connection\: string, database\: string\|null, plan\: array\|string\|null, error\: string\|null\} but returns array\.$#'
-			identifier: return.type
-			count: 2
 			path: src/Analysis/ExplainRunner.php
 
 		-
@@ -52,6 +28,12 @@ parameters:
 			message: '#^Method Mateffy\\Laraperf\\Analysis\\ExplainRunner\:\:runPostgres\(\) return type has no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
+			path: src/Analysis/ExplainRunner.php
+
+		-
+			message: '#^Method Mateffy\\Laraperf\\Analysis\\ExplainRunner\:\:runPostgres\(\) should return array\{driver\: string, connection\: string, database\: string\|null, plan\: array\|string\|null, error\: string\|null\} but returns array\{driver\: ''pgsql'', connection\: string, database\: string\|null, plan\: mixed, error\: null\}\.$#'
+			identifier: return.type
+			count: 2
 			path: src/Analysis/ExplainRunner.php
 
 		-
@@ -73,26 +55,8 @@ parameters:
 			path: src/Commands/PerfExplainCommand.php
 
 		-
-			message: '#^Cannot access offset ''hash'' on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: src/Commands/PerfExplainCommand.php
-
-		-
-			message: '#^Cannot access offset ''raw_sql'' on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: src/Commands/PerfExplainCommand.php
-
-		-
-			message: '#^Cannot access offset ''sql'' on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: src/Commands/PerfExplainCommand.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Commands\\PerfExplainCommand\:\:resolveSql\(\) should return string\|null but returns array\|float\|int\<min, \-1\>\|int\<1, max\>\|string\|true\.$#'
-			identifier: return.type
+			message: '#^Cannot cast mixed to string\.$#'
+			identifier: cast.string
 			count: 1
 			path: src/Commands/PerfExplainCommand.php
 
@@ -103,19 +67,7 @@ parameters:
 			path: src/Commands/PerfExplainCommand.php
 
 		-
-			message: '#^Parameter \#1 \$session_id of method Mateffy\\Laraperf\\Storage\\PerfStore\:\:readSession\(\) expects string, array\|bool\|float\|int\|string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Commands/PerfExplainCommand.php
-
-		-
 			message: '#^Parameter \#1 \$string of method Illuminate\\Console\\Command\:\:line\(\) expects string, string\|false given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Commands/PerfExplainCommand.php
-
-		-
-			message: '#^Parameter \$connection of method Mateffy\\Laraperf\\Analysis\\ExplainRunner\:\:run\(\) expects string, mixed given\.$#'
 			identifier: argument.type
 			count: 1
 			path: src/Commands/PerfExplainCommand.php
@@ -127,25 +79,7 @@ parameters:
 			path: src/Commands/PerfExplainCommand.php
 
 		-
-			message: '#^Part \$connection \(mixed\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: src/Commands/PerfExplainCommand.php
-
-		-
 			message: '#^Part \$database \(mixed\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: src/Commands/PerfExplainCommand.php
-
-		-
-			message: '#^Part \$hash \(non\-empty\-array\|float\|int\<min, \-1\>\|int\<1, max\>\|non\-falsy\-string\|true\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: src/Commands/PerfExplainCommand.php
-
-		-
-			message: '#^Part \$label \(mixed\) of encapsed string cannot be cast to string\.$#'
 			identifier: encapsedStringPart.nonString
 			count: 1
 			path: src/Commands/PerfExplainCommand.php
@@ -169,12 +103,6 @@ parameters:
 			path: src/Commands/PerfQueryCommand.php
 
 		-
-			message: '#^Cannot access offset ''connection'' on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
 			message: '#^Cannot access offset ''file'' on mixed\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 1
@@ -187,30 +115,6 @@ parameters:
 			path: src/Commands/PerfQueryCommand.php
 
 		-
-			message: '#^Cannot access offset ''operation'' on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Cannot access offset ''raw_sql'' on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Cannot access offset ''source'' on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Cannot access offset ''time_ms'' on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 3
-			path: src/Commands/PerfQueryCommand.php
-
-		-
 			message: '#^Cannot access offset 0 on mixed\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 2
@@ -219,96 +123,18 @@ parameters:
 		-
 			message: '#^Cannot cast mixed to float\.$#'
 			identifier: cast.double
+			count: 5
+			path: src/Commands/PerfQueryCommand.php
+
+		-
+			message: '#^Cannot cast mixed to string\.$#'
+			identifier: cast.string
 			count: 3
 			path: src/Commands/PerfQueryCommand.php
 
 		-
-			message: '#^Method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:applyConnectionAndOperationFilters\(\) has parameter \$queries with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:applyConnectionAndOperationFilters\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:applyFiltersAndLimit\(\) has parameter \$queries with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:applyFiltersAndLimit\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:outputAll\(\) has parameter \$queries with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:outputAll\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:outputN1\(\) has parameter \$queries with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:outputN1\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:outputSlow\(\) has parameter \$queries with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:outputSlow\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:outputSummary\(\) has parameter \$queries with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:outputSummary\(\) has parameter \$session with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:outputSummary\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:renderTable\(\) has parameter \$output with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:resolveSession\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Offset ''n1''\|''slow''\|''summary'' might not exist on non\-empty\-array\{summary\?\: array\<string, mixed\>, slow\?\: array\<string, mixed\>, n1\?\: array\<string, mixed\>\}\.$#'
+			identifier: offsetAccess.notFound
 			count: 1
 			path: src/Commands/PerfQueryCommand.php
 
@@ -325,67 +151,19 @@ parameters:
 			path: src/Commands/PerfQueryCommand.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<\(int\|string\),mixed\>\:\:filter\(\) expects \(callable\(mixed, int\|string\)\: bool\)\|null, Closure\(array\)\: bool given\.$#'
-			identifier: argument.type
-			count: 2
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Parameter \#1 \$num of function number_format expects float, mixed given\.$#'
-			identifier: argument.type
-			count: 2
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Parameter \#1 \$queries of method Mateffy\\Laraperf\\Analysis\\N1Detector\:\:detect\(\) expects array\<int, array\<string, mixed\>\>, array given\.$#'
-			identifier: argument.type
-			count: 2
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Parameter \#1 \$queries of method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:outputAll\(\) expects array, mixed given\.$#'
+			message: '#^Parameter \#1 \$output of method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:renderCombinedTable\(\) expects array\<string, array\<string, mixed\>\>, array\<string, mixed\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: src/Commands/PerfQueryCommand.php
 
 		-
-			message: '#^Parameter \#1 \$queries of method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:outputN1\(\) expects array, mixed given\.$#'
+			message: '#^Parameter \#1 \$queries of method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:buildN1\(\) expects array\<int, array\<string, mixed\>\>, mixed given\.$#'
 			identifier: argument.type
 			count: 1
 			path: src/Commands/PerfQueryCommand.php
 
 		-
-			message: '#^Parameter \#1 \$queries of method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:outputSlow\(\) expects array, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Parameter \#1 \$session_id of method Mateffy\\Laraperf\\Storage\\PerfStore\:\:readSession\(\) expects string, array\|bool\|float\|int\|string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Parameter \#1 \$string of function strtoupper expects string, array\|bool\|float\|int\|string\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Parameter \#1 \$string of function strtoupper expects string, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Parameter \#1 \$string of function substr expects string, mixed given\.$#'
-			identifier: argument.type
-			count: 2
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Parameter \#1 \$string of method Illuminate\\Console\\Command\:\:line\(\) expects string, string\|false given\.$#'
+			message: '#^Parameter \#1 \$queries of method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:buildSlow\(\) expects array\<int, array\<string, mixed\>\>, mixed given\.$#'
 			identifier: argument.type
 			count: 1
 			path: src/Commands/PerfQueryCommand.php
@@ -397,28 +175,46 @@ parameters:
 			path: src/Commands/PerfQueryCommand.php
 
 		-
-			message: '#^Parameter \#2 \$queries of method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:outputSummary\(\) expects array, mixed given\.$#'
-			identifier: argument.type
-			count: 2
-			path: src/Commands/PerfQueryCommand.php
-
-		-
-			message: '#^Parameter \#2 \$type of method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:renderTable\(\) expects string, array\|bool\|float\|int\|string\|null given\.$#'
+			message: '#^Parameter \#2 \$queries of method Mateffy\\Laraperf\\Commands\\PerfQueryCommand\:\:buildSummary\(\) expects array\<int, array\<string, mixed\>\>, mixed given\.$#'
 			identifier: argument.type
 			count: 1
 			path: src/Commands/PerfQueryCommand.php
 
 		-
-			message: '#^Parameter \#1 \$arg of function escapeshellarg expects string, array\|float\|int\<min, \-1\>\|int\<1, max\>\|string\|true given\.$#'
-			identifier: argument.type
-			count: 2
-			path: src/Commands/PerfWatchCommand.php
+			message: '#^Part \$output\[''n1''\]\[''threshold''\] \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: src/Commands/PerfQueryCommand.php
 
 		-
-			message: '#^Parameter \#1 \$path of function url expects string\|null, array\|float\|int\<min, \-1\>\|int\<1, max\>\|string\|true given\.$#'
-			identifier: argument.type
+			message: '#^Part \$output\[''slow''\]\[''threshold_ms''\] \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
 			count: 1
-			path: src/Commands/PerfWatchCommand.php
+			path: src/Commands/PerfQueryCommand.php
+
+		-
+			message: '#^Part \$s\[''n1_candidate_count''\] \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: src/Commands/PerfQueryCommand.php
+
+		-
+			message: '#^Part \$s\[''session_id''\] \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: src/Commands/PerfQueryCommand.php
+
+		-
+			message: '#^Part \$s\[''total_queries''\] \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: src/Commands/PerfQueryCommand.php
+
+		-
+			message: '#^Part \$s\[''total_time_ms''\] \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: src/Commands/PerfQueryCommand.php
 
 		-
 			message: '#^Parameter \#1 \$value of function count expects array\|Countable, mixed given\.$#'
@@ -427,104 +223,182 @@ parameters:
 			path: src/Commands/PerfWatchCommand.php
 
 		-
-			message: '#^Parameter \#1 \$path of function url expects string\|null, array\|float\|int\<min, \-1\>\|int\<1, max\>\|string\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Commands/PerfWorkerCommand.php
-
-		-
-			message: '#^Parameter \#1 \$pid of method Mateffy\\Laraperf\\Storage\\PerfStore\:\:removeWatcherPid\(\) expects int, int\|false given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Commands/PerfWorkerCommand.php
-
-		-
-			message: '#^Parameter \#1 \$session_id of method Mateffy\\Laraperf\\QueryLogger\:\:start\(\) expects string, array\|float\|int\<min, \-1\>\|int\<1, max\>\|string\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Commands/PerfWorkerCommand.php
-
-		-
-			message: '#^Parameter \#1 \$session_id of method Mateffy\\Laraperf\\Storage\\PerfStore\:\:emptySession\(\) expects string, array\|float\|int\<min, \-1\>\|int\<1, max\>\|string\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Commands/PerfWorkerCommand.php
-
-		-
-			message: '#^Parameter \#1 \$session_id of method Mateffy\\Laraperf\\Storage\\PerfStore\:\:finalizeSession\(\) expects string, array\|float\|int\<min, \-1\>\|int\<1, max\>\|string\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Commands/PerfWorkerCommand.php
-
-		-
-			message: '#^Parameter \#1 \$session_id of method Mateffy\\Laraperf\\Storage\\PerfStore\:\:readSession\(\) expects string, array\|float\|int\<min, \-1\>\|int\<1, max\>\|string\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Commands/PerfWorkerCommand.php
-
-		-
-			message: '#^Parameter \#1 \$session_id of method Mateffy\\Laraperf\\Storage\\PerfStore\:\:writeSession\(\) expects string, array\|float\|int\<min, \-1\>\|int\<1, max\>\|string\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Commands/PerfWorkerCommand.php
-
-		-
-			message: '#^Parameter \#2 \$session_id of method Mateffy\\Laraperf\\Storage\\PerfStore\:\:writeWatcherPid\(\) expects string, array\|float\|int\<min, \-1\>\|int\<1, max\>\|string\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Commands/PerfWorkerCommand.php
-
-		-
-			message: '#^Cannot call method make\(\) on mixed\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: src/LaraperfServiceProvider.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\LaraperfServiceProvider\:\:packageBooted\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: src/LaraperfServiceProvider.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\LaraperfServiceProvider\:\:registeringPackage\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: src/LaraperfServiceProvider.php
-
-		-
 			message: '#^Parameter \#1 \$session_id of method Mateffy\\Laraperf\\QueryLogger\:\:start\(\) expects string, mixed given\.$#'
 			identifier: argument.type
 			count: 1
 			path: src/LaraperfServiceProvider.php
 
 		-
-			message: '#^Parameter \$normalizer of class Mateffy\\Laraperf\\QueryLogger constructor expects Mateffy\\Laraperf\\Analysis\\QueryNormalizer, mixed given\.$#'
-			identifier: argument.type
+			message: '#^Access to an undefined property PHPUnit\\Framework\\TestCase\:\:\$performanceResult\.$#'
+			identifier: property.notFound
 			count: 1
-			path: src/LaraperfServiceProvider.php
+			path: src/Pest/Autoload.php
 
 		-
-			message: '#^Parameter \$store of class Mateffy\\Laraperf\\QueryLogger constructor expects Mateffy\\Laraperf\\Storage\\PerfStore, mixed given\.$#'
-			identifier: argument.type
+			message: '#^Cannot call method isActive\(\) on class\-string\|object\.$#'
+			identifier: method.nonObject
 			count: 1
-			path: src/LaraperfServiceProvider.php
+			path: src/Pest/Autoload.php
 
 		-
-			message: '#^Parameter \#2 \$needle of function str_contains expects string, mixed given\.$#'
+			message: '#^Cannot call method stop\(\) on class\-string\|object\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: src/Pest/Autoload.php
+
+		-
+			message: '#^Parameter \#1 \$object_or_class of function method_exists expects object\|string, mixed given\.$#'
 			identifier: argument.type
+			count: 1
+			path: src/Pest/Autoload.php
+
+		-
+			message: '#^Access to property \$count on an unknown class Mateffy\\Laraperf\\Pest\\Expectations\\N1Candidate\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Pest/Expectations/PerformanceExpectation.php
+
+		-
+			message: '#^Access to property \$normalizedSql on an unknown class Mateffy\\Laraperf\\Pest\\Expectations\\N1Candidate\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Pest/Expectations/PerformanceExpectation.php
+
+		-
+			message: '#^Access to property \$table on an unknown class Mateffy\\Laraperf\\Pest\\Expectations\\N1Candidate\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Pest/Expectations/PerformanceExpectation.php
+
+		-
+			message: '#^Cannot cast mixed to int\.$#'
+			identifier: cast.int
+			count: 1
+			path: src/Pest/Expectations/PerformanceExpectation.php
+
+		-
+			message: '#^Method Mateffy\\Laraperf\\Pest\\Expectations\\PerformanceExpectation\:\:result\(\) should return Pest\\Expectation\<Mateffy\\Laraperf\\Testing\\PerformanceResult\> but returns Pest\\Expectation\<mixed\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Pest/Expectations/PerformanceExpectation.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Mateffy\\Laraperf\\Analysis\\N1Candidate\>\:\:map\(\) expects callable\(Mateffy\\Laraperf\\Analysis\\N1Candidate, int\)\: non\-falsy\-string, Closure\(Mateffy\\Laraperf\\Pest\\Expectations\\N1Candidate\)\: non\-falsy\-string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Pest/Expectations/PerformanceExpectation.php
+
+		-
+			message: '#^Parameter \$c of anonymous function has invalid type Mateffy\\Laraperf\\Pest\\Expectations\\N1Candidate\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Pest/Expectations/PerformanceExpectation.php
+
+		-
+			message: '#^Part \$constraints\[''max_memory''\] \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: src/Pest/Expectations/PerformanceExpectation.php
+
+		-
+			message: '#^Cannot cast mixed to float\.$#'
+			identifier: cast.double
 			count: 2
-			path: src/QueryLogger.php
+			path: src/Pest/Expectations/QueryExpectation.php
 
 		-
-			message: '#^Property Mateffy\\Laraperf\\QueryLogger\:\:\$excluded_prefixes type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Method Mateffy\\Laraperf\\Pest\\Expectations\\QueryExpectation\:\:n1Candidates\(\) should return Illuminate\\Support\\Collection\<int, Mateffy\\Laraperf\\Analysis\\N1Candidate\> but returns array\<int, array\<string, mixed\>\>\|Illuminate\\Support\\Collection\<int, Mateffy\\Laraperf\\Analysis\\N1Candidate\>\.$#'
+			identifier: return.type
 			count: 1
-			path: src/QueryLogger.php
+			path: src/Pest/Expectations/QueryExpectation.php
 
 		-
-			message: '#^Property Mateffy\\Laraperf\\QueryLogger\:\:\$included_prefixes type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Method Mateffy\\Laraperf\\Pest\\Expectations\\QueryExpectation\:\:toExpectation\(\) should return Pest\\Expectation\<Illuminate\\Support\\Collection\<int, Mateffy\\Laraperf\\Testing\\QueryRecord\>\> but returns Pest\\Expectation\<Illuminate\\Support\\Collection\<int, Mateffy\\Laraperf\\Testing\\QueryRecord\>\|null\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Pest/Expectations/QueryExpectation.php
+
+		-
+			message: '#^Offset ''file'' on array\{file\: string, line\: int, function\: string, class\: string\|null\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Pest/Expectations/QueryExpectation.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''Pest\\\\PendingCalls\\\\TestCall'' and ''extend'' will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: src/Pest/Functions.php
+
+		-
+			message: '#^Cannot call method maxN1Candidates\(\) on mixed\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: src/Pest/Functions.php
+
+		-
+			message: '#^Cannot call method maxTotalDuration\(\) on mixed\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: src/Pest/Functions.php
+
+		-
+			message: '#^Function Mateffy\\Laraperf\\Pest\\measure\(\) should return Mateffy\\Laraperf\\Testing\\PerformanceResult but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Pest/Functions.php
+
+		-
+			message: '#^Function Mateffy\\Laraperf\\Pest\\perf\(\) should return Mateffy\\Laraperf\\Testing\\PerformanceResult but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Pest/Functions.php
+
+		-
+			message: '#^PHPDoc tag @var with type PHPUnit\\Framework\\TestCase is not subtype of native type Pest\\PendingCalls\\TestCall\|Pest\\Support\\HigherOrderTapProxy\.$#'
+			identifier: varTag.nativeType
+			count: 3
+			path: src/Pest/Functions.php
+
+		-
+			message: '#^Parameter \#1 \.\.\.\$arrays of function array_merge expects array, mixed given\.$#'
+			identifier: argument.type
+			count: 5
+			path: src/Pest/Functions.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 7
+			path: src/Pest/Functions.php
+
+		-
+			message: '#^Access to an undefined property PHPUnit\\Framework\\TestCase\:\:\$performanceCapture\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Pest/Hooks.php
+
+		-
+			message: '#^Access to an undefined property PHPUnit\\Framework\\TestCase\:\:\$performanceConstraints\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Pest/Hooks.php
+
+		-
+			message: '#^Access to an undefined property PHPUnit\\Framework\\TestCase\:\:\$performanceResult\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Pest/Hooks.php
+
+		-
+			message: '#^Trait Mateffy\\Laraperf\\Pest\\PerformanceTestingTrait is used zero times and is not analysed\.$#'
+			identifier: trait.unused
+			count: 1
+			path: src/Pest/PerformanceTestingTrait.php
+
+		-
+			message: '#^Parameter \$bindings of class Mateffy\\Laraperf\\Testing\\QueryRecord constructor expects list\<mixed\>, array given\.$#'
+			identifier: argument.type
 			count: 1
 			path: src/QueryLogger.php
 
@@ -537,84 +411,18 @@ parameters:
 		-
 			message: '#^Cannot cast mixed to int\.$#'
 			identifier: cast.int
-			count: 1
+			count: 2
 			path: src/Storage/PerfStore.php
 
 		-
-			message: '#^Method Mateffy\\Laraperf\\Storage\\PerfStore\:\:activeSession\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
+			message: '#^Cannot cast mixed to string\.$#'
+			identifier: cast.string
+			count: 2
 			path: src/Storage/PerfStore.php
 
 		-
-			message: '#^Method Mateffy\\Laraperf\\Storage\\PerfStore\:\:allWatcherPids\(\) should return array\<int, array\{pid\: int, session_id\: string, started_at\: string\}\> but returns array\<int, non\-empty\-array\<mixed\>\>\.$#'
+			message: '#^Method Mateffy\\Laraperf\\Storage\\PerfStore\:\:readSession\(\) should return array\<string, mixed\>\|null but returns array\<mixed, mixed\>\|null\.$#'
 			identifier: return.type
-			count: 1
-			path: src/Storage/PerfStore.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Storage\\PerfStore\:\:appendQuery\(\) has parameter \$query with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Storage/PerfStore.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Storage\\PerfStore\:\:emptySession\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Storage/PerfStore.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Storage\\PerfStore\:\:latestSession\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Storage/PerfStore.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Storage\\PerfStore\:\:readSession\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Storage/PerfStore.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Storage\\PerfStore\:\:writeSession\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Storage/PerfStore.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<\(int\|string\),mixed\>\:\:filter\(\) expects \(callable\(mixed, int\|string\)\: bool\)\|null, Closure\(string\)\: bool given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Storage/PerfStore.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<\(int\|string\),mixed\>\:\:map\(\) expects callable\(mixed, int\|string\)\: \(array\{id\: string, mtime\: int\}\|null\), Closure\(string\)\: \(array\{id\: string, mtime\: int\}\|null\) given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Storage/PerfStore.php
-
-		-
-			message: '#^Parameter \#1 \$haystack of function str_contains expects string, mixed given\.$#'
-			identifier: argument.type
-			count: 2
-			path: src/Storage/PerfStore.php
-
-		-
-			message: '#^Parameter \#1 \$path of function basename expects string, mixed given\.$#'
-			identifier: argument.type
-			count: 2
-			path: src/Storage/PerfStore.php
-
-		-
-			message: '#^Parameter \#1 \$path of static method Illuminate\\Support\\Facades\\File\:\:get\(\) expects string, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Storage/PerfStore.php
-
-		-
-			message: '#^Parameter \#1 \$paths of static method Illuminate\\Support\\Facades\\File\:\:delete\(\) expects array\|string, mixed given\.$#'
-			identifier: argument.type
 			count: 1
 			path: src/Storage/PerfStore.php
 
@@ -625,7 +433,97 @@ parameters:
 			path: src/Storage/PerfStore.php
 
 		-
-			message: '#^Parameter \#2 \$contents of static method Illuminate\\Support\\Facades\\File\:\:put\(\) expects string, string\|false given\.$#'
-			identifier: argument.type
-			count: 2
+			message: '#^Property Mateffy\\Laraperf\\Storage\\PerfStore\:\:\$base_path \(string\) does not accept mixed\.$#'
+			identifier: assign.propertyType
+			count: 1
 			path: src/Storage/PerfStore.php
+
+		-
+			message: '#^PHPDoc tag @return contains generic type Mateffy\\Laraperf\\Testing\\PerformanceResult\<mixed\> but class Mateffy\\Laraperf\\Testing\\PerformanceResult is not generic\.$#'
+			identifier: generics.notGeneric
+			count: 1
+			path: src/Testing/Functions.php
+
+		-
+			message: '#^Parameter \$timeline of class Mateffy\\Laraperf\\Testing\\PerformanceResult constructor expects array\<int, array\{label\: string, timestamp\: float, memory\: int, metadata\: array\<string, mixed\>\}\>, non\-empty\-array\<int, array\{label\: string, timestamp\: float, memory\: int, metadata\: array\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Testing/PerformanceCapture.php
+
+		-
+			message: '#^Property Mateffy\\Laraperf\\Testing\\PerformanceCapture\:\:\$timeline type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Testing/PerformanceCapture.php
+
+		-
+			message: '#^Cannot cast mixed to float\.$#'
+			identifier: cast.double
+			count: 2
+			path: src/Testing/PerformanceResult.php
+
+		-
+			message: '#^Cannot cast mixed to string\.$#'
+			identifier: cast.string
+			count: 1
+			path: src/Testing/PerformanceResult.php
+
+		-
+			message: '#^Method Mateffy\\Laraperf\\Testing\\PerformanceResult\:\:n1Candidates\(\) should return Illuminate\\Support\\Collection\<int, Mateffy\\Laraperf\\Analysis\\N1Candidate\> but returns array\<int, array\<string, mixed\>\>\|Illuminate\\Support\\Collection\<int, Mateffy\\Laraperf\\Analysis\\N1Candidate\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Testing/PerformanceResult.php
+
+		-
+			message: '#^Method Mateffy\\Laraperf\\Testing\\PerformanceResult\:\:tablesAccessed\(\) should return list\<string\> but returns array\<mixed\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Testing/PerformanceResult.php
+
+		-
+			message: '#^Offset ''timestamp'' on array\{label\: string, timestamp\: float, memory\: int, metadata\: array\<string, mixed\>\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: src/Testing/PerformanceResult.php
+
+		-
+			message: '#^Method Mateffy\\Laraperf\\Testing\\PerformanceSessionManager\:\:loadFromFile\(\) should return array\<string, mixed\>\|null but returns array\<mixed, mixed\>\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Testing/PerformanceSessionManager.php
+
+		-
+			message: '#^Parameter \$bindings of class Mateffy\\Laraperf\\Testing\\QueryRecord constructor expects list\<mixed\>, array given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Testing/PerformanceSessionManager.php
+
+		-
+			message: '#^Property Illuminate\\Database\\Events\\QueryExecuted\:\:\$connectionName \(string\) on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.property
+			count: 1
+			path: src/Testing/PerformanceSessionManager.php
+
+		-
+			message: '#^Cannot cast mixed to float\.$#'
+			identifier: cast.double
+			count: 1
+			path: src/Testing/QueryRecord.php
+
+		-
+			message: '#^Cannot cast mixed to string\.$#'
+			identifier: cast.string
+			count: 11
+			path: src/Testing/QueryRecord.php
+
+		-
+			message: '#^Parameter \$bindings of class Mateffy\\Laraperf\\Testing\\QueryRecord constructor expects list\<mixed\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Testing/QueryRecord.php
+
+		-
+			message: '#^Parameter \$source of class Mateffy\\Laraperf\\Testing\\QueryRecord constructor expects array\<int, array\{file\: string, line\: int, function\: string, class\: string\|null\}\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Testing/QueryRecord.php

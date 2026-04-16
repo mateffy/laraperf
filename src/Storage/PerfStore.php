@@ -35,7 +35,11 @@ class PerfStore
         return $this->base_path.'/'.$session_id.'.json';
     }
 
-    /** Read a session. Returns null when the file does not exist. */
+    /**
+     * Read a session. Returns null when the file does not exist.
+     *
+     * @return array<string, mixed>|null
+     */
     public function readSession(string $session_id): ?array
     {
         $path = $this->sessionPath($session_id);
@@ -45,6 +49,10 @@ class PerfStore
         }
 
         $json = File::get($path);
+        if ($json === false) {
+            return null;
+        }
+
         $decoded = json_decode($json, true);
 
         return is_array($decoded) ? $decoded : null;
@@ -52,19 +60,26 @@ class PerfStore
 
     /**
      * Write (overwrite) a session to disk atomically via a temp file.
-     * This prevents partial reads when the watcher process is appending
-     * queries while another process reads the session.
+     *
+     * @param  array<string, mixed>  $data
      */
     public function writeSession(string $session_id, array $data): void
     {
         $path = $this->sessionPath($session_id);
         $tmp = $path.'.tmp.'.getmypid();
 
-        File::put($tmp, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-        rename($tmp, $path);
+        $content = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($content !== false) {
+            File::put($tmp, $content);
+            rename($tmp, $path);
+        }
     }
 
-    /** Append a query record to an active session file (read-modify-write). */
+    /**
+     * Append a query record to an active session file (read-modify-write).
+     *
+     * @param  array<string, mixed>  $query
+     */
     public function appendQuery(string $session_id, array $query): void
     {
         $session = $this->readSession($session_id) ?? $this->emptySession($session_id);
@@ -90,6 +105,9 @@ class PerfStore
         $this->pruneOldSessions();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function emptySession(string $session_id): array
     {
         return [
@@ -103,17 +121,24 @@ class PerfStore
         ];
     }
 
-    /** Return the most recently modified completed session, or null. */
+    /**
+     * Return the most recently modified completed session, or null.
+     *
+     * @return array<string, mixed>|null
+     */
     public function latestSession(): ?array
     {
         $sessions = [];
 
-        foreach (File::glob($this->base_path.'/*.json') as $file) {
-            if (str_contains($file, '.tmp.')) {
+        /** @var list<string> $files */
+        $files = File::glob($this->base_path.'/*.json');
+
+        foreach ($files as $file) {
+            if (str_contains((string) $file, '.tmp.')) {
                 continue;
             }
 
-            $id = basename($file, '.json');
+            $id = basename((string) $file, '.json');
             $session = $this->readSession($id);
 
             if ($session && $session['status'] === 'completed') {
@@ -136,15 +161,22 @@ class PerfStore
         return $sessions[0];
     }
 
-    /** Return any active session (running watcher), or null. */
+    /**
+     * Return any active session (running watcher), or null.
+     *
+     * @return array<string, mixed>|null
+     */
     public function activeSession(): ?array
     {
-        foreach (File::glob($this->base_path.'/*.json') as $file) {
-            if (str_contains($file, '.tmp.')) {
+        /** @var list<string> $files */
+        $files = File::glob($this->base_path.'/*.json');
+
+        foreach ($files as $file) {
+            if (str_contains((string) $file, '.tmp.')) {
                 continue;
             }
 
-            $id = basename($file, '.json');
+            $id = basename((string) $file, '.json');
             $session = $this->readSession($id);
 
             if ($session && $session['status'] === 'active') {
@@ -171,11 +203,14 @@ class PerfStore
 
     public function writeWatcherPid(int $pid, string $session_id): void
     {
-        File::put($this->watcherPidPath($pid), json_encode([
+        $content = json_encode([
             'pid' => $pid,
             'session_id' => $session_id,
             'started_at' => now()->toIso8601String(),
-        ]));
+        ]);
+        if ($content !== false) {
+            File::put($this->watcherPidPath($pid), $content);
+        }
     }
 
     public function removeWatcherPid(int $pid): void
@@ -196,11 +231,22 @@ class PerfStore
     {
         $result = [];
 
-        foreach (File::glob($this->base_path.'/.watcher-*') as $file) {
-            $content = json_decode(File::get($file), true);
+        /** @var list<string> $files */
+        $files = File::glob($this->base_path.'/.watcher-*');
 
-            if (is_array($content) && isset($content['pid'])) {
-                $result[(int) $content['pid']] = $content;
+        foreach ($files as $file) {
+            $raw = File::get((string) $file);
+            if ($raw === false) {
+                continue;
+            }
+            $content = json_decode($raw, true);
+
+            if (is_array($content) && isset($content['pid'], $content['session_id'], $content['started_at'])) {
+                $result[(int) $content['pid']] = [
+                    'pid' => (int) $content['pid'],
+                    'session_id' => (string) $content['session_id'],
+                    'started_at' => (string) $content['started_at'],
+                ];
             }
         }
 
@@ -214,7 +260,10 @@ class PerfStore
     /** Keep only the newest MAX_SESSIONS completed sessions, delete the rest. */
     protected function pruneOldSessions(): void
     {
-        $completed = collect(File::glob($this->base_path.'/*.json'))
+        /** @var list<string> $files */
+        $files = File::glob($this->base_path.'/*.json');
+
+        $completed = collect($files)
             ->filter(fn (string $f) => ! str_contains($f, '.tmp.'))
             ->map(function (string $f) {
                 $id = basename($f, '.json');
@@ -229,14 +278,19 @@ class PerfStore
             ->values();
 
         foreach ($completed->slice(self::MAX_SESSIONS) as $old) {
-            File::delete($this->sessionPath($old['id']));
+            if (is_array($old) && isset($old['id'])) {
+                File::delete($this->sessionPath((string) $old['id']));
+            }
         }
     }
 
     public function clearAll(): void
     {
-        foreach (File::glob($this->base_path.'/*.json') as $file) {
-            File::delete($file);
+        /** @var list<string> $files */
+        $files = File::glob($this->base_path.'/*.json');
+
+        foreach ($files as $file) {
+            File::delete((string) $file);
         }
     }
 }

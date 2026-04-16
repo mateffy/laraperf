@@ -1,5 +1,7 @@
 import { createFileRoute, Link, notFound } from '@tanstack/react-router'
+import { useState } from 'react'
 import { getPostBySlug, getAllSlugs } from '@/data/posts'
+import { Copy, Download, Check } from 'lucide-react'
 
 export const Route = createFileRoute('/blog/$slug')({
   component: BlogPost,
@@ -103,13 +105,38 @@ const Icons = {
   )
 }
 
+function PostHeader({ post }) {
+  return (
+    <div className="max-w-6xl mx-auto px-4 md:px-8 pb-4">
+      <Link
+        to="/blog"
+        className="inline-flex items-center gap-2 text-sm text-stone-400 hover:text-emerald-400 transition mb-6"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="19" y1="12" x2="5" y2="12" />
+          <polyline points="12 19 5 12 12 5" />
+        </svg>
+        All articles
+      </Link>
+      <div className="flex flex-wrap items-center gap-4 text-xs text-stone-400 mb-8">
+        <span>{post.author}</span>
+        <span>·</span>
+        <span>{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+        <span>·</span>
+        <span>{post.readingTime}</span>
+      </div>
+    </div>
+  )
+}
+
 // Block renderers
-function HeroBlock({ block, eyebrow }) {
+function HeroBlock({ block, eyebrow, post }) {
   if (block.layout === "split") {
     return (
-      <section className="border-b border-stone-200">
-        <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-stone-200">
-          <div className="bg-stone-950/80 p-8 lg:p-12 flex flex-col justify-center">
+      <section className="border-b border-stone-200 bg-stone-950/80 pt-8">
+        {post && <PostHeader post={post} />}
+        <div className="grid grid-cols-1 lg:grid-cols-2">
+          <div className="p-8 lg:p-12 flex flex-col justify-center">
             <div className="text-emerald-400 text-xs font-mono tracking-widest mb-4">{block.left.eyebrow || eyebrow}</div>
             <h1 className="text-3xl lg:text-4xl font-bold text-stone-50 font-outfit leading-tight mb-6">
               {block.left.title}
@@ -122,10 +149,18 @@ function HeroBlock({ block, eyebrow }) {
               <span className="text-stone-400 text-sm">{block.left.stat.label}</span>
             </div>
           </div>
-          <div className="bg-stone-900 p-8 lg:p-12 flex items-center">
-            <pre className="text-sm font-mono text-stone-300 leading-relaxed">
-              <code>{block.right.code}</code>
-            </pre>
+          <div className="p-8 lg:p-12 flex items-center justify-center">
+            <div className="w-full bg-stone-950 border border-stone-700/50 shadow-xl">
+              <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-stone-800">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-400/80"/>
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400/80"/>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/80"/>
+                <span className="text-xs text-stone-500 font-mono ml-2">php</span>
+              </div>
+              <pre className="p-4 text-sm font-mono text-stone-300 leading-relaxed overflow-x-auto">
+                <code>{block.right.code}</code>
+              </pre>
+            </div>
           </div>
         </div>
       </section>
@@ -134,7 +169,8 @@ function HeroBlock({ block, eyebrow }) {
   
   if (block.layout === "center") {
     return (
-      <section className="bg-stone-950/80 border-b border-stone-200 py-16 lg:py-24 px-4">
+      <section className="bg-stone-950/80 border-b border-stone-200 pt-8 pb-16 lg:pb-24 px-4">
+        {post && <PostHeader post={post} />}
         <div className="max-w-4xl mx-auto text-center">
           <div className="text-emerald-400 text-xs font-mono tracking-widest mb-4">{block.eyebrow || eyebrow}</div>
           <h1 className="text-4xl lg:text-5xl font-bold text-stone-50 font-outfit leading-tight mb-6">
@@ -156,7 +192,8 @@ function HeroBlock({ block, eyebrow }) {
 
   if (block.layout === "stats") {
     return (
-      <section className="bg-stone-950/80 border-b border-stone-200 py-16 lg:py-24 px-4">
+      <section className="bg-stone-950/80 border-b border-stone-200 pt-8 pb-16 lg:pb-24 px-4">
+        {post && <PostHeader post={post} />}
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="text-emerald-400 text-xs font-mono tracking-widest mb-4">{block.eyebrow || eyebrow}</div>
@@ -182,33 +219,16 @@ function HeroBlock({ block, eyebrow }) {
 
   if (block.layout === "split-code") {
     return (
-      <section className="bg-stone-950/80 border-b border-stone-200">
-        <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-stone-200">
-          <div className="p-8 lg:p-12 flex flex-col justify-center">
-            <div className="text-emerald-400 text-xs font-mono tracking-widest mb-4">{block.eyebrow || eyebrow}</div>
-            <h1 className="text-3xl lg:text-4xl font-bold text-stone-50 font-outfit leading-tight mb-6">
-              {block.title}
-            </h1>
-            <p className="text-stone-300 text-lg leading-relaxed">
-              {block.description}
-            </p>
-          </div>
-          <div className="p-8 lg:p-12 flex items-center justify-center">
-            <div className="flex items-center gap-4">
-              {block.visual.steps.map((step, i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <div className="w-16 h-16 border border-emerald-900 bg-emerald-950/30 flex items-center justify-center">
-                    <span className="text-emerald-400 font-mono text-sm">{step}</span>
-                  </div>
-                  {i < block.visual.steps.length - 1 && (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-stone-600">
-                      <polyline points="9 18 15 12 9 6"/>
-                    </svg>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+      <section className="bg-stone-950/80 border-b border-stone-200 pt-8">
+        {post && <PostHeader post={post} />}
+        <div className="max-w-4xl mx-auto px-4 pb-16 lg:pb-24">
+          <div className="text-emerald-400 text-xs font-mono tracking-widest mb-4">{block.eyebrow || eyebrow}</div>
+          <h1 className="text-3xl lg:text-4xl font-bold text-stone-50 font-outfit leading-tight mb-6">
+            {block.title}
+          </h1>
+          <p className="text-stone-300 text-lg leading-relaxed">
+            {block.description}
+          </p>
         </div>
       </section>
     )
@@ -825,20 +845,15 @@ function TextBlock({ block }) {
     ))
   }
 
-  const widthClasses = {
-    narrow: "max-w-3xl",
-    wide: "max-w-5xl"
-  }
-
   return (
     <section className="py-12 lg:py-16 px-4 border-b border-stone-200 bg-stone-50">
-      <div className={`mx-auto ${widthClasses[block.layout] || "max-w-3xl"}`}>
+      <div className="max-w-4xl mx-auto">
         {block.title && (
           <h2 className="text-xl lg:text-2xl font-bold text-stone-900 font-outfit mb-6">
             {block.title}
           </h2>
         )}
-        <div className="text-base">
+        <div className="text-lg">
           {renderContent(block.content)}
         </div>
       </div>
@@ -846,8 +861,96 @@ function TextBlock({ block }) {
   )
 }
 
+function InstallCTABlock() {
+  const [copied, setCopied] = useState(false)
+  const [copiedSkill, setCopiedSkill] = useState(false)
+  const [copiedPrompt, setCopiedPrompt] = useState(false)
+
+  const promptText = 'Fetch and read the laraperf skill from https://laraperf.dev/skill.md, then install the package in this Laravel project using composer require mateffy/laraperf --dev. Run a quick performance capture to verify it\'s working.'
+
+  return (
+    <section className="py-16 lg:py-24 px-4 border-b border-stone-200">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-12">
+          <Download size={24} className="mx-auto mb-4 text-emerald-600" />
+          <h2 className="text-3xl font-bold text-stone-900 font-outfit">Get started</h2>
+          <p className="mt-3 text-stone-500">Two ways to install — manual or let your agent handle it.</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-px bg-stone-200">
+          <div className="bg-white p-8 lg:p-10">
+            <h3 className="text-lg font-bold text-stone-900 mb-6 font-outfit">Manual install</h3>
+            <div className="space-y-6">
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
+                  <span className="font-bold text-stone-900 text-sm">Install via Composer</span>
+                </div>
+                <div className="bg-stone-950 rounded-lg p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2">
+                  <code className="text-xs">composer require mateffy/laraperf --dev</code>
+                  <button
+                    onClick={() => { navigator.clipboard?.writeText('composer require mateffy/laraperf --dev'); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
+                    className="shrink-0 text-stone-500 hover:text-stone-300 transition"
+                    title="Copy"
+                  >
+                    {copied ? <Check size={12} /> : <Copy size={12} />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-5 h-5 rounded-full bg-stone-300 text-stone-600 text-xs font-bold flex items-center justify-center shrink-0">2</span>
+                  <span className="font-bold text-stone-700 text-sm">Optional: env config</span>
+                </div>
+                <div className="bg-stone-950 rounded-lg p-3 font-mono text-xs text-stone-300 leading-5">
+                  <div className="text-stone-500"># Connection for perf:explain</div>
+                  <div><span className="text-blue-300">PERF_CONNECTION</span>=<span className="text-emerald-300">pgsql</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-emerald-950 p-8 lg:p-10">
+            <h3 className="text-lg font-bold text-white mb-4 font-outfit">Let your agent do it</h3>
+            <p className="text-emerald-200/80 text-sm mb-4 leading-relaxed">
+              Install the skill permanently with the CLI, or paste a prompt for a one-shot setup.
+            </p>
+            <div className="bg-stone-950/60 rounded-lg p-3 font-mono text-sm text-emerald-300 flex items-center justify-between gap-2 mb-4">
+              <code className="text-xs">npx skills add mateffy/laraperf</code>
+              <button
+                onClick={() => { navigator.clipboard?.writeText('npx skills add mateffy/laraperf'); setCopiedSkill(true); setTimeout(() => setCopiedSkill(false), 2000) }}
+                className="shrink-0 text-stone-500 hover:text-stone-300 transition"
+                title="Copy command"
+              >
+                {copiedSkill ? <Check size={12} /> : <Copy size={12} />}
+              </button>
+            </div>
+            <p className="text-emerald-200/60 text-sm mb-3">
+              Or paste this prompt for a quick one-shot:
+            </p>
+            <div className="relative">
+              <textarea
+                readOnly
+                value={promptText}
+                className="w-full h-36 bg-emerald-900/50 border border-emerald-800 text-emerald-100 text-xs font-mono p-3 leading-relaxed resize-none focus:outline-none rounded-lg"
+              />
+              <button
+                onClick={() => { navigator.clipboard?.writeText(promptText); setCopiedPrompt(true); setTimeout(() => setCopiedPrompt(false), 2000) }}
+                className="absolute top-2 right-2 p-1.5 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 transition rounded"
+                title="Copy prompt"
+              >
+                {copiedPrompt ? <Check size={14} /> : <Copy size={14} />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // Main block renderer
-function renderBlock(block, eyebrow) {
+function renderBlock(block, eyebrow, post) {
   const blockRenderers = {
     hero: HeroBlock,
     text: TextBlock,
@@ -868,13 +971,14 @@ function renderBlock(block, eyebrow) {
     "best-practices": BestPracticesBlock,
     insights: InsightsBlock,
     "multi-tenant": MultiTenantBlock,
-    cleanup: CleanupBlock
+    cleanup: CleanupBlock,
+    "install-cta": InstallCTABlock
   }
 
   const Renderer = blockRenderers[block.type]
   if (!Renderer) return null
 
-  return <Renderer block={block} eyebrow={eyebrow} />
+  return <Renderer block={block} eyebrow={eyebrow} post={block.type === 'hero' ? post : undefined} />
 }
 
 function BlogPost() {
@@ -882,36 +986,10 @@ function BlogPost() {
 
   return (
     <>
-      {/* ── POST HEADER ── */}
-      <section className="relative border-b border-stone-200 bg-stone-50">
-        <div className="max-w-6xl mx-auto px-4 md:px-8 py-8">
-          {/* Back link */}
-          <Link
-            to="/blog"
-            className="inline-flex items-center gap-2 text-sm text-stone-400 hover:text-emerald-600 transition mb-6"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-            All articles
-          </Link>
-
-          {/* Meta */}
-          <div className="flex flex-wrap items-center gap-4 text-xs text-stone-400 mb-4">
-            <span>{post.author}</span>
-            <span>·</span>
-            <span>{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-            <span>·</span>
-            <span>{post.readingTime}</span>
-          </div>
-        </div>
-      </section>
-
       {/* ── CONTENT BLOCKS ── */}
       {post.blocks.map((block, index) => (
         <div key={index}>
-          {renderBlock(block, post.eyebrow)}
+          {renderBlock(block, post.eyebrow, post)}
         </div>
       ))}
 

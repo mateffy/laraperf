@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Mateffy\Laraperf\Pest;
 
 use Mateffy\Laraperf\Testing\PerformanceCapture;
+use Mateffy\Laraperf\Testing\PerformanceResult;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Global hooks for automatic performance testing integration.
@@ -26,8 +28,8 @@ class Hooks
     {
         // Start performance capture before each test
         beforeEach(function () {
-            // Store constraints set via test()->maxQueryCount() etc
-            $this->performanceConstraints = $this->performanceConstraints ?? [];
+            /** @var TestCase $this */
+            $this->performanceConstraints = [];
 
             // Start capture for this test
             $this->performanceCapture = new PerformanceCapture;
@@ -36,9 +38,12 @@ class Hooks
 
         // Stop capture and validate constraints after each test
         afterEach(function () {
+            /** @var TestCase $this */
             // Stop the capture if it's still active
-            if ($this->performanceCapture !== null && $this->performanceCapture->isActive()) {
-                $this->performanceResult = $this->performanceCapture->stop();
+            if (property_exists($this, 'performanceCapture') && $this->performanceCapture !== null && $this->performanceCapture instanceof PerformanceCapture && $this->performanceCapture->isActive()) {
+                /** @var PerformanceResult $result */
+                $result = $this->performanceCapture->stop();
+                $this->performanceResult = $result;
             }
 
             // Validate any declarative constraints set via test()->maxQueryCount() etc

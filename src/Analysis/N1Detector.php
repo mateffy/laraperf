@@ -21,10 +21,8 @@ class N1Detector
     public const DEFAULT_THRESHOLD = 3;
 
     public function __construct(
-        protected ?QueryNormalizer $normalizer = null,
-    ) {
-        $this->normalizer = $normalizer ?? new QueryNormalizer;
-    }
+        protected QueryNormalizer $normalizer = new QueryNormalizer,
+    ) {}
 
     /**
      * Analyse a flat array of query records and return N+1 candidates.
@@ -37,12 +35,10 @@ class N1Detector
      */
     public function detect(array|Collection $queries, int $threshold = self::DEFAULT_THRESHOLD): array|Collection
     {
-        // Handle QueryRecord collection
-        if ($queries instanceof Collection && $queries->first() instanceof QueryRecord) {
+        if ($queries instanceof Collection) {
             return $this->detectFromQueryRecords($queries, $threshold);
         }
 
-        // Handle array format (original behavior for backward compatibility)
         return $this->detectFromArrays($queries, $threshold);
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mateffy\Laraperf\Pest\Expectations;
 
 use Illuminate\Support\Collection;
+use Mateffy\Laraperf\Analysis\N1Candidate;
 use Mateffy\Laraperf\Analysis\N1Detector;
 use Mateffy\Laraperf\Testing\QueryRecord;
 use Pest\Expectation;
@@ -17,8 +18,12 @@ use PHPUnit\Framework\ExpectationFailedException;
  */
 class QueryExpectation
 {
+    /** @var Collection<int, QueryRecord> */
     protected Collection $queries;
 
+    /**
+     * @param  Collection<int, QueryRecord>  $queries
+     */
     public function __construct(Collection $queries)
     {
         $this->queries = $queries;
@@ -78,7 +83,7 @@ class QueryExpectation
      */
     public function whereSourceContains(string $path): self
     {
-        return new self($this->queries->filter(fn (QueryRecord $q) => collect($q->source)->contains(fn ($frame) => str_contains($frame['file'] ?? '', $path)
+        return new self($this->queries->filter(fn (QueryRecord $q) => collect($q->source)->contains(fn (array $frame) => str_contains($frame['file'] ?? '', $path)
         )
         ));
     }
@@ -104,7 +109,7 @@ class QueryExpectation
      */
     public function duration(): NumericExpectation
     {
-        $total = $this->queries->sum('time_ms');
+        $total = (float) $this->queries->sum('time_ms');
 
         return new NumericExpectation(
             $total,
@@ -118,7 +123,7 @@ class QueryExpectation
      */
     public function averageDuration(): NumericExpectation
     {
-        $avg = $this->queries->avg('time_ms') ?? 0;
+        $avg = (float) ($this->queries->avg('time_ms') ?? 0);
 
         return new NumericExpectation(
             $avg,
@@ -132,7 +137,7 @@ class QueryExpectation
      */
     public function maxDuration(): NumericExpectation
     {
-        $max = $this->queries->max('time_ms') ?? 0;
+        $max = (float) ($this->queries->max('time_ms') ?? 0);
 
         return new NumericExpectation(
             $max,
@@ -147,12 +152,14 @@ class QueryExpectation
 
     /**
      * Get N+1 candidates from these queries.
+     *
+     * @return Collection<int, N1Candidate>
      */
     public function n1Candidates(int $threshold = 3): Collection
     {
-        $detector = new N1Detector($threshold);
+        $detector = new N1Detector;
 
-        return $detector->detect($this->queries);
+        return $detector->detect($this->queries, $threshold);
     }
 
     /**
@@ -165,7 +172,7 @@ class QueryExpectation
         $candidates = $this->n1Candidates($threshold);
 
         if ($candidates->isNotEmpty()) {
-            $details = $candidates->map(fn ($c) => "{$c['count']}× {$c['table']}: {$c['normalized_sql']}"
+            $details = $candidates->map(fn (N1Candidate $c) => "{$c->count}× {$c->table}: {$c->normalizedSql}"
             )->implode("\n");
 
             throw new ExpectationFailedException(
@@ -189,7 +196,6 @@ class QueryExpectation
     {
         $actual = $this->queries->map(fn (QueryRecord $q) => $q->toArray())->toArray();
 
-        // Simplified matching - can be enhanced
         if (count($actual) !== count($expected)) {
             throw new ExpectationFailedException(
                 'Query count mismatch: expected '.count($expected).', got '.count($actual)
@@ -199,6 +205,8 @@ class QueryExpectation
 
     /**
      * Get the underlying collection for custom assertions.
+     *
+     * @return Collection<int, QueryRecord>
      */
     public function getCollection(): Collection
     {
@@ -207,6 +215,8 @@ class QueryExpectation
 
     /**
      * Access as Pest Expectation for standard assertions.
+     *
+     * @return Expectation<Collection<int, QueryRecord>>
      */
     public function toExpectation(): Expectation
     {

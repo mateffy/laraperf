@@ -43,15 +43,15 @@ class PerfWorkerCommand extends Command
 
     public function handle(): int
     {
-        $session_id = $this->option('session');
+        $session_id = (string) $this->option('session');
 
-        if (! $session_id) {
+        if ($session_id === '') {
             return self::FAILURE;
         }
 
         $seconds = max(1, (int) $this->option('seconds'));
         $forever = (bool) $this->option('forever');
-        $pid = getmypid();
+        $pid = getmypid() ?: 1;
 
         // Register our own PID in the sentinel file (the parent may have
         // written the proc_open PID which differs on some OSes).
@@ -59,7 +59,7 @@ class PerfWorkerCommand extends Command
 
         // Re-open the session and mark it active (it was created by the parent).
         $session = $this->store->readSession($session_id) ?? $this->store->emptySession($session_id);
-        $session['worker_pid'] = $pid;
+        $session['worker_pid'] = (int) $pid;
         $this->store->writeSession($session_id, $session);
 
         // Attach the logger — this process serves as the "active flag"
@@ -71,7 +71,7 @@ class PerfWorkerCommand extends Command
         $finalize = function () use ($session_id, $pid, &$finalized) {
             if (! $finalized) {
                 $finalized = true;
-                $this->store->removeWatcherPid($pid);
+                $this->store->removeWatcherPid((int) $pid);
                 $this->store->finalizeSession($session_id);
             }
         };

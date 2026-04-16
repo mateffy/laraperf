@@ -85,13 +85,14 @@ class PerfQueryCommand extends Command
         }
 
         $singleKey = count($parts) === 1 ? array_key_first($parts) : null;
+        /** @var array<string, array<string, mixed>> $output */
         $output = $singleKey ? $parts[$singleKey] : $parts;
 
-        if ($this->option('format') === 'table') {
+        if ((string) $this->option('format') === 'table') {
             $tableType = $singleKey ?? 'combined';
-            $this->renderTable($output, $tableType);
+            $this->renderTable($output, (string) $tableType);
         } else {
-            $this->line(json_encode($output, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            $this->line(json_encode($output, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '');
         }
 
         return self::SUCCESS;
@@ -101,6 +102,11 @@ class PerfQueryCommand extends Command
     // Output builders
     // =========================================================================
 
+    /**
+     * @param  array<string, mixed>  $session
+     * @param  array<int, array<string, mixed>>  $queries
+     * @return array<string, mixed>
+     */
     protected function buildSummary(array $session, array $queries): array
     {
         $total_time = collect($queries)->sum('time_ms');
@@ -128,9 +134,9 @@ class PerfQueryCommand extends Command
             'slowest_query_source' => $slowest['source'][0] ?? null,
             'request_batch_count' => $batches->count(),
             'n1_candidate_count' => count($n1_candidates),
-            'n1_candidates' => array_slice($n1_candidates, 0, 5),
-            'slow_query_count_100ms' => collect($queries)->filter(fn ($q) => ($q['time_ms'] ?? 0) >= 100)->count(),
-            'slow_query_count_500ms' => collect($queries)->filter(fn ($q) => ($q['time_ms'] ?? 0) >= 500)->count(),
+            'n1_candidates' => array_slice(is_array($n1_candidates) ? $n1_candidates : $n1_candidates->all(), 0, 5),
+            'slow_query_count_100ms' => collect($queries)->filter(fn (array $q) => ($q['time_ms'] ?? 0) >= 100)->count(),
+            'slow_query_count_500ms' => collect($queries)->filter(fn (array $q) => ($q['time_ms'] ?? 0) >= 500)->count(),
             'connections' => collect($queries)->pluck('connection')->unique()->values()->all(),
             'operations' => collect($queries)
                 ->groupBy('operation')
@@ -140,6 +146,10 @@ class PerfQueryCommand extends Command
         ];
     }
 
+    /**
+     * @param  array<int, array<string, mixed>>  $queries
+     * @return array<string, mixed>
+     */
     protected function buildSlow(array $queries, float $threshold): array
     {
         $slow = collect($queries)
@@ -154,17 +164,22 @@ class PerfQueryCommand extends Command
         ];
     }
 
+    /**
+     * @param  array<int, array<string, mixed>>  $queries
+     * @return array<string, mixed>
+     */
     protected function buildN1(array $queries, int $threshold): array
     {
         $filtered = $this->applyConnectionAndOperationFilters($queries);
         $candidates = $this->n1_detector->detect($filtered, $threshold);
+        $candidatesArray = is_array($candidates) ? $candidates : $candidates->all();
         $limit = (int) $this->option('limit');
 
         return [
             'type' => 'n1',
             'threshold' => $threshold,
-            'candidate_count' => count($candidates),
-            'candidates' => array_slice($candidates, 0, $limit),
+            'candidate_count' => count($candidatesArray),
+            'candidates' => array_slice($candidatesArray, 0, $limit),
         ];
     }
 
@@ -172,13 +187,17 @@ class PerfQueryCommand extends Command
     // Filtering helpers
     // =========================================================================
 
+    /**
+     * @param  array<int, array<string, mixed>>  $queries
+     * @return array<int, array<string, mixed>>
+     */
     protected function applyFiltersAndLimit(array $queries, string $sortBy = 'time_ms'): array
     {
         $filtered = $this->applyConnectionAndOperationFilters($queries);
 
         $batch = $this->option('batch');
 
-        if ($batch) {
+        if ($batch && is_string($batch)) {
             $filtered = collect($filtered)
                 ->filter(fn (array $q) => ($q['batch_id'] ?? '') === $batch)
                 ->all();
@@ -193,14 +212,18 @@ class PerfQueryCommand extends Command
             ->all();
     }
 
+    /**
+     * @param  array<int, array<string, mixed>>  $queries
+     * @return array<int, array<string, mixed>>
+     */
     protected function applyConnectionAndOperationFilters(array $queries): array
     {
         $connection = $this->option('connection');
         $operation = $this->option('operation');
 
         return collect($queries)
-            ->when($connection, fn ($c) => $c->filter(fn ($q) => ($q['connection'] ?? '') === $connection))
-            ->when($operation, fn ($c) => $c->filter(fn ($q) => strtoupper($q['operation'] ?? '') === strtoupper($operation)))
+            ->when($connection, fn ($c) => $c->filter(fn (array $q) => ($q['connection'] ?? '') === $connection))
+            ->when($operation, fn ($c) => $c->filter(fn (array $q) => strtoupper((string) ($q['operation'] ?? '')) === strtoupper((string) $operation)))
             ->all();
     }
 
@@ -208,9 +231,12 @@ class PerfQueryCommand extends Command
     // Session resolution
     // =========================================================================
 
+    /**
+     * @return array<string, mixed>|null
+     */
     protected function resolveSession(): ?array
     {
-        $id = $this->option('session') ?? 'last';
+        $id = (string) ($this->option('session') ?? 'last');
 
         if ($id === 'last') {
             return $this->store->latestSession();
@@ -223,15 +249,18 @@ class PerfQueryCommand extends Command
     // Table renderer (human-readable fallback)
     // =========================================================================
 
+    /**
+     * @param  array<string, mixed>  $output
+     */
     protected function renderTable(array $output, string $type): void
     {
         if ($type === 'n1') {
             $rows = array_map(fn (array $c) => [
                 $c['count'],
-                number_format($c['total_time_ms'], 1).'ms',
+                number_format((float) ($c['total_time_ms'] ?? 0), 1).'ms',
                 $c['table'] ?? '?',
-                $c['operation'],
-                substr($c['normalized_sql'], 0, 80),
+                $c['operation'] ?? '',
+                substr((string) ($c['normalized_sql'] ?? ''), 0, 80),
             ], $output['candidates'] ?? []);
 
             $this->table(['Count', 'Total ms', 'Table', 'Op', 'Normalized SQL'], $rows);
@@ -241,11 +270,11 @@ class PerfQueryCommand extends Command
 
         if ($type === 'slow') {
             $rows = array_map(fn (array $q) => [
-                number_format($q['time_ms'] ?? 0, 2).'ms',
+                number_format((float) ($q['time_ms'] ?? 0), 2).'ms',
                 $q['connection'] ?? '',
                 $q['operation'] ?? '',
                 $q['table'] ?? '',
-                substr($q['raw_sql'] ?? $q['sql'] ?? '', 0, 100),
+                substr((string) ($q['raw_sql'] ?? $q['sql'] ?? ''), 0, 100),
                 isset($q['source'][0]) ? ($q['source'][0]['file'] ?? '').':'.($q['source'][0]['line'] ?? '') : '',
             ], $output['queries'] ?? []);
 
@@ -261,6 +290,9 @@ class PerfQueryCommand extends Command
         }
     }
 
+    /**
+     * @param  array<string, array<string, mixed>>  $output
+     */
     protected function renderCombinedTable(array $output): void
     {
         if (isset($output['summary'])) {

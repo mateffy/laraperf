@@ -125,6 +125,8 @@ class PerformanceCapture
      * Add a timeline event with a label.
      *
      * Useful for marking specific phases of an operation.
+     *
+     * @param  array<string, mixed>  $metadata
      */
     public function mark(string $label, array $metadata = []): void
     {

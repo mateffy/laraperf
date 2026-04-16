@@ -81,7 +81,7 @@ class PerformanceExpectation
 
         if ($count > 0) {
             $candidates = $this->result->n1Candidates($threshold);
-            $details = $candidates->map(fn ($c) => "{$c['count']}× {$c['table']}: {$c['normalized_sql']}")->implode("\n");
+            $details = $candidates->map(fn (N1Candidate $c) => "{$c->count}× {$c->table}: {$c->normalizedSql}")->implode("\n");
 
             throw new ExpectationFailedException(
                 "Expected no N+1 patterns (threshold: {$threshold}), but found {$count}:\n{$details}"
@@ -110,6 +110,8 @@ class PerformanceExpectation
 
     /**
      * Assert the raw result value.
+     *
+     * @return Expectation<PerformanceResult>
      */
     public function result(): Expectation
     {
@@ -128,27 +130,33 @@ class PerformanceExpectation
         $errors = [];
 
         if (isset($constraints['max_queries'])) {
-            if ($this->result->queryCount() > $constraints['max_queries']) {
-                $errors[] = "Query count {$this->result->queryCount()} > {$constraints['max_queries']}";
+            /** @var int $maxQueries */
+            $maxQueries = $constraints['max_queries'];
+            if ($this->result->queryCount() > $maxQueries) {
+                $errors[] = "Query count {$this->result->queryCount()} > {$maxQueries}";
             }
         }
 
         if (isset($constraints['max_query_duration_ms'])) {
-            if ($this->result->slowestQueryTimeMs() > $constraints['max_query_duration_ms']) {
-                $errors[] = "Slowest query {$this->result->slowestQueryTimeMs()}ms > {$constraints['max_query_duration_ms']}ms";
+            /** @var float $maxQueryDuration */
+            $maxQueryDuration = $constraints['max_query_duration_ms'];
+            if ($this->result->slowestQueryTimeMs() > $maxQueryDuration) {
+                $errors[] = "Slowest query {$this->result->slowestQueryTimeMs()}ms > {$maxQueryDuration}ms";
             }
         }
 
         if (isset($constraints['max_duration_ms'])) {
-            if ($this->result->durationMs() > $constraints['max_duration_ms']) {
-                $errors[] = "Duration {$this->result->durationMs()}ms > {$constraints['max_duration_ms']}ms";
+            /** @var float $maxDuration */
+            $maxDuration = $constraints['max_duration_ms'];
+            if ($this->result->durationMs() > $maxDuration) {
+                $errors[] = "Duration {$this->result->durationMs()}ms > {$maxDuration}ms";
             }
         }
 
         if (isset($constraints['max_memory'])) {
             $maxBytes = is_string($constraints['max_memory'])
                 ? self::parseMemoryString($constraints['max_memory'])
-                : $constraints['max_memory'];
+                : (int) $constraints['max_memory'];
 
             if ($this->result->netMemoryBytes() > $maxBytes) {
                 $errors[] = "Memory {$this->result->netMemoryHuman()} > {$constraints['max_memory']}";
@@ -156,10 +164,13 @@ class PerformanceExpectation
         }
 
         if (isset($constraints['max_n1_candidates'])) {
+            /** @var int $maxN1 */
+            $maxN1 = $constraints['max_n1_candidates'];
+            /** @var int $threshold */
             $threshold = $constraints['n1_threshold'] ?? 3;
             $count = $this->result->n1Count($threshold);
-            if ($count > $constraints['max_n1_candidates']) {
-                $errors[] = "N+1 candidates {$count} > {$constraints['max_n1_candidates']} (threshold: {$threshold})";
+            if ($count > $maxN1) {
+                $errors[] = "N+1 candidates {$count} > {$maxN1} (threshold: {$threshold})";
             }
         }
 

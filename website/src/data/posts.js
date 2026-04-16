@@ -180,6 +180,9 @@ For nested relationships, you can eager load multiple levels: \`Post::with('user
       content: `This workflow transforms N+1 detection from a manual debugging chore into an automated maintenance task. The agent doesn't just find the problem—it understands the relationship from your code context, applies the appropriate eager loading syntax, and verifies the query count actually decreased.
 
 You can run this in CI to catch N+1 regressions before they reach production. Add it to your GitHub Actions workflow, and any PR that introduces an N+1 query will fail the build with the exact location and a suggested fix.`
+    },
+    {
+      type: "install-cta"
     }
   ],
 
@@ -322,6 +325,9 @@ After creating an index, PostgreSQL won't immediately start using it. You may ne
       content: `Multi-tenant setups often use separate databases or schemas per tenant. The \`--db\` flag lets you override the database connection at runtime without touching config files or environment variables. This is perfect for investigating performance issues reported by specific tenants.
 
 Because laraperf uses Laravel's connection system, it works with any tenancy approach—separate databases, schema-based, or row-level tenancy with database prefixes. Just specify the connection name and database, and you're analyzing production performance safely.`
+    },
+    {
+      type: "install-cta"
     }
   ],
 
@@ -491,6 +497,9 @@ You can enhance this with automatic agent intervention. On failure, the action c
           "Machine-readable timestamps for trend analysis"
         ]
       }
+    },
+    {
+      type: "install-cta"
     }
   ],
 
@@ -659,6 +668,9 @@ This is particularly useful for support scenarios. A tenant reports slowness on 
       content: `There's no automatic cleanup because we believe in explicit data management. Your query history might be valuable for trend analysis, and we don't want to delete data you might need. But sessions do accumulate—especially if you're doing frequent captures during debugging—so periodic cleanup is recommended.
 
 The \`--force\` flag skips the confirmation prompt, making it suitable for cron jobs. A weekly \`0 0 * * 0 cd /var/www && php artisan perf:clear --force\` keeps storage clean without manual intervention.`
+    },
+    {
+      type: "install-cta"
     }
   ]
 };

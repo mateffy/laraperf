@@ -85,5 +85,32 @@ if (fs.existsSync(skillSource)) {
   console.log('✓ Generated /skill.md')
 }
 
-console.log(`\n✅ Generated ${posts.length + 3} static pages`)
+// Generate sitemap.xml
+const DOMAIN = 'https://laraperf.dev'
+const today = new Date().toISOString().split('T')[0]
+
+const sitemapEntries = [
+  { loc: '/', changefreq: 'weekly', priority: '1.0' },
+  { loc: '/blog', changefreq: 'weekly', priority: '0.8' },
+  ...posts.map(post => ({
+    loc: `/blog/${post.slug}`,
+    lastmod: post.date,
+    changefreq: 'monthly',
+    priority: '0.6',
+  })),
+]
+
+const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemapEntries.map(entry => `  <url>
+    <loc>${DOMAIN}${entry.loc}</loc>${entry.lastmod ? `\n    <lastmod>${entry.lastmod}</lastmod>` : ''}
+    <changefreq>${entry.changefreq}</changefreq>
+    <priority>${entry.priority}</priority>
+  </url>`).join('\n')}
+</urlset>`
+
+fs.writeFileSync(path.join(DOCS_DIR, 'sitemap.xml'), sitemapXml)
+console.log('✓ Generated /sitemap.xml')
+
+console.log(`\n✅ Generated ${posts.length + 3} static pages + sitemap`)
 console.log('📁 Output directory:', DOCS_DIR)

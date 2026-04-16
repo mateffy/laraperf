@@ -16,6 +16,7 @@ import {
     ShieldCheck,
     Star,
     Activity,
+    TestTubes,
 } from "lucide-react";
 
 const HERO_LINES = [
@@ -262,7 +263,7 @@ function AnimatedTerminal({ code }) {
     };
 
     return (
-        <div className="bg-stone-950 rounded-xl p-1 shadow-2xl overflow-hidden">
+        <div className="bg-stone-950 p-1 shadow-2xl overflow-hidden">
             <div className="bg-stone-900 px-4 py-2 flex items-center gap-2 border-b border-white/5">
                 <div className="flex gap-1.5">
                     <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
@@ -347,7 +348,7 @@ function PhpTerminal({ code, title }) {
     const lines = code.split("\n");
 
     return (
-        <div className="bg-stone-950 rounded-xl p-1 shadow-2xl overflow-hidden">
+        <div className="bg-stone-950 p-1 shadow-2xl overflow-hidden">
             <div className="bg-stone-900 px-4 py-2 flex items-center gap-2 border-b border-white/5">
                 <div className="flex gap-1.5">
                     <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
@@ -374,12 +375,12 @@ function PhpTerminal({ code, title }) {
 
 function MethodTable({ methods }) {
     return (
-        <div className="mt-6 border border-stone-200 rounded-lg overflow-hidden">
+        <div className="mt-6 border border-stone-200 overflow-hidden">
             <table className="w-full text-sm">
                 <tbody>
-                    {methods.map(({ method, desc }) => (
-                        <tr key={method} className="border-b border-stone-100 last:border-b-0">
-                            <td className="px-3 py-1.5 font-mono text-xs text-stone-800 bg-stone-50 whitespace-nowrap">
+                    {methods.map(({ method, desc }, i) => (
+                        <tr key={method} className={`${i > 0 ? "border-t border-stone-100" : ""}`}>
+                            <td className="px-3 py-1.5 font-mono text-xs text-stone-600 break-all">
                                 {method}
                             </td>
                             <td className="px-3 py-1.5 text-stone-500">
@@ -417,9 +418,6 @@ function CommandTabs() {
 
             <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
                 <div>
-                    <div className="mb-6 w-12 h-12 bg-stone-100 rounded-lg flex items-center justify-center text-stone-400">
-                        <Code size={22} />
-                    </div>
                     <h3 className="text-2xl font-bold text-stone-900 font-mono">
                         {tab.label}
                     </h3>
@@ -585,11 +583,16 @@ icon: <Code size={24} />,
                            title: "Clean stack traces",
                           desc: "Your agent only sees your app code. Vendor frames are filtered out so the source location points directly to your code.",
                       },
-                      {
-icon: <Database size={24} />,
-                           title: "Multi-tenant",
-                          desc: "Override the database name at runtime. No config changes needed, works with any tenancy setup.",
-                      },
+{
+ icon: <Database size={24} />,
+                            title: "Multi-tenant",
+                           desc: "Override the database name at runtime. No config changes needed, works with any tenancy setup.",
+                       },
+                       {
+ icon: <TestTubes size={24} />,
+                            title: "Pest integration",
+                           desc: "Write performance assertions directly in your test suite — query counts, N+1 detection, duration limits — with a fluent API.",
+                       },
                   ].map(({ icon, title, desc }) => (
                       <div
                           key={title}
@@ -1013,15 +1016,15 @@ test('import progress tracking', function () {
                            <Copy size={12} />
                        </button>
                   </div>
-                  <p className="text-emerald-200/60 text-xs mb-4">
-                      Or paste this prompt for a quick one-shot:
-                  </p>
-                  <div className="relative">
-                      <textarea
-                          readOnly
-                          value={`Fetch and read the laraperf skill from https://laraperf.dev/skill.md, then install the package in this Laravel project using composer require mateffy/laraperf --dev. Run a quick performance capture to verify it's working.`}
-                          className="w-full h-20 bg-emerald-900/50 border border-emerald-800 text-emerald-100 text-xs font-mono p-3 leading-relaxed resize-none focus:outline-none"
-                      />
+<p className="text-emerald-200/60 text-sm mb-3">
+                       Or paste this prompt for a quick one-shot:
+                   </p>
+                   <div className="relative">
+                       <textarea
+                           readOnly
+                           value={`Fetch and read the laraperf skill from https://laraperf.dev/skill.md, then install the package in this Laravel project using composer require mateffy/laraperf --dev. Run a quick performance capture to verify it's working.`}
+                           className="w-full h-36 bg-emerald-900/50 border border-emerald-800 text-emerald-100 text-xs font-mono p-3 leading-relaxed resize-none focus:outline-none"
+                       />
 <button
                            onClick={() => {
                                const text = `Fetch and read the laraperf skill from https://laraperf.dev/skill.md, then install the package in this Laravel project using composer require mateffy/laraperf --dev. Run a quick performance capture to verify it's working.`;
@@ -1033,11 +1036,7 @@ test('import progress tracking', function () {
                            <Copy size={14} />
                        </button>
                   </div>
-                  <div className="mt-4 flex items-center gap-2 text-xs text-emerald-400/60">
-<ShieldCheck size={12} />
-                      <span>Works with Claude Code, Cursor, Codex, and any MCP-enabled agent</span>
-                  </div>
-              </div>
+</div>
           </div>
       </section>
 
@@ -1118,9 +1117,9 @@ test('import progress tracking', function () {
                   </div>
 
                   {/* Right: install methods */}
-                  <div className="space-y-6">
+                  <div className="flex flex-col divide-y divide-white/10">
                       {/* Primary: npx skills add */}
-                      <div className="bg-stone-950 rounded-xl p-6">
+                      <div className="bg-stone-950 p-6">
                           <div className="flex items-center gap-2 mb-4">
                               <span className="bg-emerald-600 text-white text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider">
                                   Recommended
@@ -1169,7 +1168,7 @@ test('import progress tracking', function () {
                       </div>
 
                       {/* Secondary: prompt */}
-                      <div className="bg-emerald-950 rounded-xl p-6">
+                      <div className="bg-emerald-950 p-6">
                           <h4 className="text-sm font-bold text-white mb-3 font-outfit">
                               Or paste a one-shot prompt
                           </h4>
@@ -1177,12 +1176,12 @@ test('import progress tracking', function () {
                               No install needed. Send this prompt to your agent — it
                               will fetch the skill and set everything up.
                           </p>
-                          <div className="relative">
-                              <textarea
-                                  readOnly
-                                  value={`Fetch and read the laraperf skill from https://laraperf.dev/skill.md, then install the package in this Laravel project using composer require mateffy/laraperf --dev. Run a quick performance capture to verify it's working.`}
-                                  className="w-full h-20 bg-emerald-900/50 border border-emerald-800 text-emerald-100 text-xs font-mono p-3 leading-relaxed resize-none focus:outline-none rounded-lg"
-                              />
+<div className="relative">
+                               <textarea
+                                   readOnly
+                                   value={`Fetch and read the laraperf skill from https://laraperf.dev/skill.md, then install the package in this Laravel project using composer require mateffy/laraperf --dev. Run a quick performance capture to verify it's working.`}
+                                   className="w-full h-36 bg-emerald-900/50 border border-emerald-800 text-emerald-100 text-xs font-mono p-3 leading-relaxed resize-none focus:outline-none rounded-lg"
+                               />
 <button
                                    onClick={() => {
                                        navigator.clipboard?.writeText(
@@ -1198,7 +1197,7 @@ test('import progress tracking', function () {
                       </div>
 
                       {/* Compatible agents */}
-                      <div className="bg-stone-50 border border-stone-200 rounded-xl p-6">
+                      <div className="bg-stone-50 border-t border-stone-200 p-6">
                           <h4 className="text-sm font-bold text-stone-900 mb-4 font-outfit">
                               Compatible agents
                           </h4>

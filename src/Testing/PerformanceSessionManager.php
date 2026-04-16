@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mateffy\Laraperf\Testing;
 
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -122,7 +123,7 @@ class PerformanceSessionManager
     /**
      * Get all active session IDs.
      *
-     * @return array<string>
+     * @return list<string>
      */
     public static function activeSessions(): array
     {
@@ -160,7 +161,7 @@ class PerformanceSessionManager
             return;
         }
 
-        DB::listen(function ($event) {
+        DB::listen(function (QueryExecuted $event) {
             self::handleQueryEvent($event);
         });
 
@@ -180,7 +181,7 @@ class PerformanceSessionManager
     /**
      * Handle a database query event.
      */
-    protected static function handleQueryEvent($event): void
+    protected static function handleQueryEvent(QueryExecuted $event): void
     {
         // Skip if no active sessions (even if listener is still attached)
         if (empty(self::$sessions)) {
@@ -197,13 +198,13 @@ class PerformanceSessionManager
     /**
      * Create a QueryRecord from a Laravel query event.
      */
-    protected static function createQueryRecord($event): QueryRecord
+    protected static function createQueryRecord(QueryExecuted $event): QueryRecord
     {
         $rawSql = $event->toRawSql();
 
         // Extract operation and table (basic parsing)
         $sql = $event->sql;
-        $operation = strtoupper(strtok($sql, ' ') ?: 'UNKNOWN');
+        $operation = strtoupper((string) strtok($sql, ' ') ?: 'UNKNOWN');
         $table = self::extractTableName($sql);
 
         return new QueryRecord(
@@ -211,13 +212,13 @@ class PerformanceSessionManager
             rawSql: $rawSql,
             bindings: $event->bindings,
             time_ms: round((float) $event->time, 3),
-            connection: $event->connectionName,
+            connection: $event->connectionName ?? 'default',
             driver: $event->connection->getDriverName(),
             operation: $operation,
             table: $table,
-            hash: md5(preg_replace('/\d+/', '?', $sql)), // Normalized hash
+            hash: md5(preg_replace('/\d+/', '?', $sql) ?: $sql),
             batch_id: self::$currentSessionId ?? 'none',
-            source: [], // Stack trace captured separately if needed
+            source: [],
             captured_at: now()->toIso8601String(),
             query_id: uniqid('q_', true),
         );
@@ -271,6 +272,8 @@ class PerformanceSessionManager
 
     /**
      * Store session data to temp file (for cross-process access).
+     *
+     * @param  array<string, mixed>  $data
      */
     public static function persistToFile(string $sessionId, array $data): void
     {
@@ -284,6 +287,8 @@ class PerformanceSessionManager
 
     /**
      * Load session data from temp file.
+     *
+     * @return array<string, mixed>|null
      */
     public static function loadFromFile(string $sessionId): ?array
     {
@@ -296,7 +301,12 @@ class PerformanceSessionManager
             return null;
         }
 
-        $data = json_decode(file_get_contents($file), true);
+        $content = file_get_contents($file);
+        if ($content === false) {
+            return null;
+        }
+
+        $data = json_decode($content, true);
 
         return is_array($data) ? $data : null;
     }
@@ -310,7 +320,13 @@ class PerformanceSessionManager
             return;
         }
 
-        foreach (glob(self::$tempDir.'/*.json') as $file) {
+        /** @var list<string> $files */
+        $files = glob(self::$tempDir.'/*.json');
+        if ($files === false) {
+            return;
+        }
+
+        foreach ($files as $file) {
             unlink($file);
         }
     }

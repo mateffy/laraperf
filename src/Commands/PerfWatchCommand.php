@@ -160,7 +160,7 @@ class PerfWatchCommand extends Command
         $log = storage_path("perf/{$session_id}.worker.log");
         $fullCmd = "nohup {$cmd} >{$log} 2>>{$log} & echo $!";
 
-        $output = trim(shell_exec($fullCmd) ?? '');
+        $output = trim((string) shell_exec($fullCmd));
         $pid = (int) $output;
 
         if ($pid <= 0) {

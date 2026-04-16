@@ -32,12 +32,14 @@ class QueryLogger
     protected bool $registered = false;
 
     /** Frames from these path fragments are excluded from stack traces. */
+    /** @var list<string> */
     protected array $excluded_prefixes = [
         '/vendor/',
         '/packages/perf/',
     ];
 
     /** Frames from these path fragments are always included (override exclusions). */
+    /** @var list<string> */
     protected array $included_prefixes = [
         '/app/',
         '/packages/',
@@ -176,7 +178,7 @@ class QueryLogger
             $excluded = false;
 
             foreach ($this->excluded_prefixes as $prefix) {
-                if (str_contains($relative, $prefix)) {
+                if (str_contains($relative, (string) $prefix)) {
                     $excluded = true;
                     break;
                 }
@@ -187,7 +189,7 @@ class QueryLogger
                 $included = false;
 
                 foreach ($this->included_prefixes as $prefix) {
-                    if (str_contains($relative, $prefix)) {
+                    if (str_contains($relative, (string) $prefix)) {
                         $included = true;
                         break;
                     }

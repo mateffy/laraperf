@@ -1,4 +1,4 @@
-import { createRootRoute, Outlet } from '@tanstack/react-router'
+import { createRootRoute, Outlet, Link } from '@tanstack/react-router'
 import { Suspense, lazy } from 'react'
 const Dither = lazy(() => import('@/components/Dither'))
 
@@ -15,8 +15,8 @@ function Nav() {
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8">
-          <a
-            href="/"
+          <Link
+            to="/"
             className="flex items-center gap-2 font-bold text-xl text-emerald-900 font-outfit"
           >
             <svg
@@ -33,23 +33,23 @@ function Nav() {
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
             </svg>
             laraperf
-          </a>
+          </Link>
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-stone-500">
             {links.map(link => (
-              <a
+              <Link
                 key={link.to}
-                href={link.to}
+                to={link.to}
                 className="hover:text-emerald-700 transition"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
-            <a
-              href="/blog"
+            <Link
+              to="/blog"
               className="hover:text-emerald-700 transition"
             >
               Blog
-            </a>
+            </Link>
           </div>
         </div>
         <div className="flex items-center gap-4 text-sm font-medium">

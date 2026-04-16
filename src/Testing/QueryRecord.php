@@ -15,7 +15,7 @@ class QueryRecord
     /**
      * @param  string  $sql  The SQL with placeholders
      * @param  string  $rawSql  The SQL with bindings interpolated
-     * @param  array  $bindings  Parameter bindings
+     * @param  list<mixed>  $bindings  Parameter bindings
      * @param  float  $time_ms  Execution time in milliseconds
      * @param  string  $connection  Connection name (e.g., 'mysql', 'pgsql')
      * @param  string  $driver  Database driver name
@@ -51,19 +51,19 @@ class QueryRecord
     public static function fromArray(array $data): self
     {
         return new self(
-            sql: $data['sql'] ?? '',
-            rawSql: $data['raw_sql'] ?? $data['rawSql'] ?? '',
-            bindings: $data['bindings'] ?? [],
+            sql: (string) ($data['sql'] ?? ''),
+            rawSql: (string) ($data['raw_sql'] ?? $data['rawSql'] ?? ''),
+            bindings: is_array($data['bindings'] ?? null) ? $data['bindings'] : [],
             time_ms: (float) ($data['time_ms'] ?? $data['timeMs'] ?? 0),
-            connection: $data['connection'] ?? 'default',
-            driver: $data['driver'] ?? 'unknown',
-            operation: $data['operation'] ?? 'UNKNOWN',
-            table: $data['table'] ?? null,
-            hash: $data['hash'] ?? '',
-            batch_id: $data['batch_id'] ?? $data['batchId'] ?? '',
-            source: $data['source'] ?? [],
-            captured_at: $data['captured_at'] ?? $data['capturedAt'] ?? now()->toIso8601String(),
-            query_id: $data['query_id'] ?? $data['queryId'] ?? null,
+            connection: (string) ($data['connection'] ?? 'default'),
+            driver: (string) ($data['driver'] ?? 'unknown'),
+            operation: (string) ($data['operation'] ?? 'UNKNOWN'),
+            table: isset($data['table']) ? (string) $data['table'] : null,
+            hash: (string) ($data['hash'] ?? ''),
+            batch_id: (string) ($data['batch_id'] ?? $data['batchId'] ?? ''),
+            source: is_array($data['source'] ?? null) ? $data['source'] : [],
+            captured_at: (string) ($data['captured_at'] ?? $data['capturedAt'] ?? now()->toIso8601String()),
+            query_id: isset($data['query_id']) ? (string) $data['query_id'] : (isset($data['queryId']) ? (string) $data['queryId'] : null),
         );
     }
 
