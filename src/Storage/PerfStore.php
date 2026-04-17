@@ -91,7 +91,7 @@ class PerfStore
 
     /** Write the tracker to disk atomically.
      *
-     * @param array<string, mixed> $tracker
+     * @param  array<string, mixed>  $tracker
      */
     public function writeTracker(array $tracker): void
     {
@@ -146,7 +146,7 @@ class PerfStore
 
     /** Check whether a tracker has expired.
      *
-     * @param array<string, mixed> $tracker
+     * @param  array<string, mixed>  $tracker
      */
     public function trackerExpired(array $tracker): bool
     {
@@ -287,7 +287,7 @@ class PerfStore
 
     /** Prime the in-memory cache with an already-resolved session.
      *
-     * @param array<string, mixed> $session
+     * @param  array<string, mixed>  $session
      */
     public function cacheSession(array $session): void
     {
