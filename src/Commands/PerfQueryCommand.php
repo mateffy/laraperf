@@ -243,6 +243,14 @@ class PerfQueryCommand extends Command
 
         if ($id === 'last') {
             $data = $this->store->latestSession();
+
+            // If no completed session exists, fall back to the currently active session.
+            if (! $data) {
+                $tracker = $this->store->activeTracker();
+                if ($tracker && isset($tracker['session_id'])) {
+                    $data = $this->store->readSession($tracker['session_id']);
+                }
+            }
         } else {
             $data = $this->store->readSession($id);
         }
