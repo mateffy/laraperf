@@ -22,12 +22,12 @@ it('perf:clear deletes all completed sessions', function () {
 
 it('perf:clear refuses when an active session exists', function () {
     $store = $this->store;
-    $store->writeTracker('active-session', $store->emptyTracker('active-session'));
+    $store->writeTracker($store->emptyTracker('active-session'));
 
     $this->artisan(PerfClearCommand::class, ['--force' => true])
         ->assertFailed();
 
-    $store->removeTracker('active-session');
+    $store->removeTracker();
 });
 
 it('perf:query returns summary for completed session', function () {
@@ -41,11 +41,6 @@ it('perf:query returns summary for completed session', function () {
     ];
     $session['query_count'] = 2;
     $store->writeSession('query-test-session', $session);
-
-    // Write tracker as completed so resolveSession can merge status
-    $tracker = $store->emptyTracker('query-test-session', 300);
-    $tracker['status'] = 'completed';
-    $store->writeTracker('query-test-session', $tracker);
 
     $this->artisan(PerfQueryCommand::class, ['--session' => 'query-test-session', '--summary' => true])
         ->assertSuccessful();

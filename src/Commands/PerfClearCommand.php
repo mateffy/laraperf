@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 use Mateffy\Laraperf\Storage\PerfStore;
 
 /**
- * Wipe all stored perf sessions and trackers from storage/perf/.
+ * Wipe all stored perf sessions and the tracker from storage/perf/.
  */
 class PerfClearCommand extends Command
 {

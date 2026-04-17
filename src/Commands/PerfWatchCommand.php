@@ -11,10 +11,10 @@ use Mateffy\Laraperf\Storage\PerfStore;
 /**
  * Start a query-capture session.
  *
- * Creates a tiny tracker file (for the PHP-FPM boot check) and an empty
- * data file, then returns immediately. Every PHP-FPM request that boots
- * while the tracker is active will attach DB::listen() and append
- * queries to the data file.
+ * Creates a tiny tracker.json flag file and an empty data file, then
+ * returns immediately. Every PHP-FPM request that boots while the
+ * tracker is active will attach DB::listen() and append queries to
+ * the data file.
  *
  * MODES
  * ─────
@@ -50,25 +50,27 @@ class PerfWatchCommand extends Command
 
     public function handle(): int
     {
+        $existing = $this->store->activeTracker();
+        if ($existing) {
+            $this->warn("Session {$existing['session_id']} is already active.");
+            $this->line('Run `php artisan perf:stop` to end it first.');
+
+            return self::FAILURE;
+        }
+
         $session_id = $this->newSessionId();
         $seconds = $this->resolveSeconds();
         $forever = (bool) $this->option('forever');
         $tag = $this->option('tag') ?? null;
 
-        // Clean up stale trackers from previous runs
-        $removed = $this->store->cleanupStaleTrackers();
-        if ($removed > 0) {
-            $this->line("Cleaned up {$removed} stale tracker(s).");
-        }
-
         $duration = $forever ? null : $seconds;
 
-        // Write the tiny tracker file (checked on every PHP-FPM boot)
+        // Write the tiny tracker flag (one file, no glob needed at boot)
         $tracker = $this->store->emptyTracker($session_id, $duration ?? 0, $tag);
         if ($forever) {
             unset($tracker['duration_seconds']);
         }
-        $this->store->writeTracker($session_id, $tracker);
+        $this->store->writeTracker($tracker);
 
         // Write the empty data file (filled with queries during capture)
         $this->store->writeSession($session_id, $this->store->emptySession($session_id));
@@ -94,8 +96,8 @@ class PerfWatchCommand extends Command
         $finalize = function () use ($session_id, &$finalized) {
             if (! $finalized) {
                 $finalized = true;
-                $this->store->finalizeTracker($session_id);
                 $this->store->finalizeSession($session_id);
+                $this->store->removeTracker();
             }
         };
 

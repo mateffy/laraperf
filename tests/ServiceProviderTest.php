@@ -25,14 +25,13 @@ it('does not attach DB::listen when no active session', function () {
 
 it('detects an active tracker from disk', function () {
     $store = app(PerfStore::class);
-    $store->writeTracker('auto-attach-test', $store->emptyTracker('auto-attach-test'));
+    $store->writeTracker($store->emptyTracker('auto-attach-test'));
 
     $active = $store->activeTracker();
     expect($active)->not->toBeNull()
         ->and($active['session_id'])->toBe('auto-attach-test');
 
-    $store->finalizeTracker('auto-attach-test');
-    $store->removeTracker('auto-attach-test');
+    $store->removeTracker();
 });
 
 it('query logger starts and stops correctly', function () {

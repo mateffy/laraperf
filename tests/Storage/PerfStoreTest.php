@@ -39,23 +39,23 @@ it('writes and reads a session data file', function () {
         ->and($read['session_id'])->toBe('test-session-1');
 });
 
-it('writes and reads a tracker', function () {
+it('writes and reads the tracker', function () {
     $tracker = $this->store->emptyTracker('test-session-1', 300);
-    $this->store->writeTracker('test-session-1', $tracker);
+    $this->store->writeTracker($tracker);
 
-    $read = $this->store->readTracker('test-session-1');
+    $read = $this->store->readTracker();
 
     expect($read)->not->toBeNull()
         ->and($read['session_id'])->toBe('test-session-1')
         ->and($read['status'])->toBe('active');
 });
 
-it('returns null for non-existent session', function () {
-    expect($this->store->readSession('does-not-exist'))->toBeNull();
+it('returns null when no tracker exists', function () {
+    expect($this->store->readTracker())->toBeNull();
 });
 
-it('returns null for non-existent tracker', function () {
-    expect($this->store->readTracker('does-not-exist'))->toBeNull();
+it('returns null for non-existent session', function () {
+    expect($this->store->readSession('does-not-exist'))->toBeNull();
 });
 
 it('appends queries to a session', function () {
@@ -78,19 +78,17 @@ it('appends queries to a session', function () {
         ->and($read['queries'][1]['sql'])->toBe('select 2');
 });
 
-it('finalizes a session and its tracker', function () {
+it('finalizes a session and removes the tracker', function () {
     $tracker = $this->store->emptyTracker('test-session-1');
-    $this->store->writeTracker('test-session-1', $tracker);
+    $this->store->writeTracker($tracker);
     $this->store->writeSession('test-session-1', $this->store->emptySession('test-session-1'));
 
-    $this->store->finalizeTracker('test-session-1');
     $this->store->finalizeSession('test-session-1');
+    $this->store->removeTracker();
 
     $read = $this->store->readSession('test-session-1');
     expect($read['finished_at'])->not->toBeNull();
-
-    $readTracker = $this->store->readTracker('test-session-1');
-    expect($readTracker['status'])->toBe('completed');
+    expect($this->store->readTracker())->toBeNull();
 });
 
 it('returns the latest completed session', function () {
@@ -113,7 +111,7 @@ it('returns null for latestSession when no sessions are completed', function () 
 
 it('returns active tracker', function () {
     $tracker = $this->store->emptyTracker('session-a');
-    $this->store->writeTracker('session-a', $tracker);
+    $this->store->writeTracker($tracker);
 
     $active = $this->store->activeTracker();
     expect($active)->not->toBeNull()
@@ -122,19 +120,20 @@ it('returns active tracker', function () {
 });
 
 it('returns null for activeTracker when none is active', function () {
-    $tracker = $this->store->emptyTracker('session-a');
-    $this->store->writeTracker('session-a', $tracker);
-    $this->store->finalizeTracker('session-a');
-
     expect($this->store->activeTracker())->toBeNull();
 });
 
 it('auto-finalizes expired trackers in activeTracker', function () {
     $tracker = $this->store->emptyTracker('expired-session', 1);
     $tracker['started_at'] = now()->subSeconds(2)->toIso8601String();
-    $this->store->writeTracker('expired-session', $tracker);
+    $this->store->writeTracker($tracker);
+    $this->store->writeSession('expired-session', $this->store->emptySession('expired-session'));
 
     expect($this->store->activeTracker())->toBeNull();
+
+    $session = $this->store->readSession('expired-session');
+    expect($session['finished_at'])->not->toBeNull();
+    expect($this->store->readTracker())->toBeNull();
 });
 
 it('trackerExpired detects expired trackers', function () {
@@ -158,17 +157,6 @@ it('trackerExpired returns false for forever trackers without duration', functio
     expect($this->store->trackerExpired($tracker))->toBeFalse();
 });
 
-it('removes stale trackers on cleanup', function () {
-    $tracker = $this->store->emptyTracker('stale-session', 1);
-    $tracker['started_at'] = now()->subSeconds(2)->toIso8601String();
-    $this->store->writeTracker('stale-session', $tracker);
-
-    $removed = $this->store->cleanupStaleTrackers();
-
-    expect($removed)->toBe(1)
-        ->and($this->store->readTracker('stale-session'))->toBeNull();
-});
-
 it('prunes old sessions when finalizing', function () {
     for ($i = 0; $i <= PerfStore::MAX_SESSIONS; $i++) {
         $id = "session-{$i}";
@@ -178,7 +166,7 @@ it('prunes old sessions when finalizing', function () {
 
     $remaining = 0;
     foreach (File::glob($this->perf_path.'/*.json') as $file) {
-        if (! str_contains($file, '.tmp.')) {
+        if (! str_contains($file, '.tmp.') && basename($file) !== 'tracker.json') {
             $remaining++;
         }
     }
@@ -186,18 +174,16 @@ it('prunes old sessions when finalizing', function () {
     expect($remaining)->toBeLessThanOrEqual(PerfStore::MAX_SESSIONS);
 });
 
-it('clears all sessions and trackers', function () {
+it('clears all sessions and the tracker', function () {
     $this->store->writeSession('session-1', $this->store->emptySession('session-1'));
-    $this->store->writeTracker('session-1', $this->store->emptyTracker('session-1'));
+    $this->store->writeTracker($this->store->emptyTracker('session-1'));
     $this->store->writeSession('session-2', $this->store->emptySession('session-2'));
-    $this->store->writeTracker('session-2', $this->store->emptyTracker('session-2'));
 
     $this->store->clearAll();
 
     expect($this->store->readSession('session-1'))->toBeNull()
         ->and($this->store->readSession('session-2'))->toBeNull()
-        ->and($this->store->readTracker('session-1'))->toBeNull()
-        ->and($this->store->readTracker('session-2'))->toBeNull();
+        ->and($this->store->readTracker())->toBeNull();
 });
 
 it('checks if session exists', function () {
@@ -207,10 +193,20 @@ it('checks if session exists', function () {
         ->and($this->store->sessionExists('nope'))->toBeFalse();
 });
 
-it('removes a tracker', function () {
-    $this->store->writeTracker('to-remove', $this->store->emptyTracker('to-remove'));
-    expect($this->store->readTracker('to-remove'))->not->toBeNull();
+it('removes the tracker', function () {
+    $this->store->writeTracker($this->store->emptyTracker('to-remove'));
+    expect($this->store->readTracker())->not->toBeNull();
 
-    $this->store->removeTracker('to-remove');
-    expect($this->store->readTracker('to-remove'))->toBeNull();
+    $this->store->removeTracker();
+    expect($this->store->readTracker())->toBeNull();
+});
+
+it('latestSession skips tracker.json', function () {
+    $this->store->writeTracker($this->store->emptyTracker('active-one'));
+    $this->store->writeSession('session-a', $this->store->emptySession('session-a'));
+    $this->store->finalizeSession('session-a');
+
+    $latest = $this->store->latestSession();
+    expect($latest)->not->toBeNull()
+        ->and($latest['session_id'])->toBe('session-a');
 });

@@ -251,14 +251,14 @@ class PerfQueryCommand extends Command
             return null;
         }
 
-        // Merge tracker metadata (tag, status) into the data
-        $tracker = $this->store->readTracker($data['session_id']);
-        if ($tracker) {
+        // The tracker only exists for the currently active session.
+        // If present, merge its tag/status into the data.
+        $tracker = $this->store->readTracker();
+        if ($tracker && ($tracker['session_id'] ?? null) === $data['session_id']) {
             $data['tag'] = $data['tag'] ?? $tracker['tag'] ?? null;
-            $data['status'] = $tracker['status'] ?? ($data['finished_at'] ? 'completed' : 'active');
+            $data['status'] = $tracker['status'];
         } else {
-            // No tracker means the session was stopped or expired
-            $data['status'] = $data['status'] ?? ($data['finished_at'] ? 'completed' : 'active');
+            $data['status'] = $data['finished_at'] ? 'completed' : 'active';
         }
 
         return $data;

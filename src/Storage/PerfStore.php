@@ -11,14 +11,15 @@ use Illuminate\Support\Facades\File;
  *
  * Two-file design:
  *
- *   Tracker  (storage/perf/trackers/<id>.json)
- *     Tiny metadata file: session_id, status, started_at, duration_seconds, tag.
- *     Checked on every PHP-FPM boot to decide whether to attach DB::listen().
- *     Auto-finalized and cleaned up when expired.
+ *   tracker.json  (storage/perf/tracker.json)
+ *     Tiny single file: session_id, status, started_at, duration_seconds, tag.
+ *     Read on every PHP-FPM boot to decide whether to attach DB::listen().
+ *     Only one tracker exists at a time — perf:watch overwrites it,
+ *     perf:stop/removes it, expiry auto-removes it.
+ *     One file_exists + one file_get_contents, no glob.
  *
- *   Data     (storage/perf/<id>.json)
- *     Full query payload: queries array, timings, etc.
- *     Only read during analysis (perf:query, perf:explain).
+ *   Data files    (storage/perf/<session_id>.json)
+ *     Full query payload. Only read during analysis and append operations.
  *     Retained for MAX_SESSIONS completed sessions, then pruned.
  */
 class PerfStore
@@ -26,8 +27,6 @@ class PerfStore
     public const MAX_SESSIONS = 10;
 
     protected string $base_path;
-
-    protected string $tracker_dir;
 
     /** @var array<string, mixed>|null In-memory cache of the session data currently being appended to. */
     protected ?array $sessionCache = null;
@@ -38,18 +37,16 @@ class PerfStore
     public function __construct(?string $base_path = null)
     {
         $this->base_path = $base_path ?? config('laraperf.storage_path', storage_path('perf'));
-        $this->tracker_dir = $this->base_path.'/trackers';
         @mkdir($this->base_path, 0755, true);
-        @mkdir($this->tracker_dir, 0755, true);
     }
 
     // -------------------------------------------------------------------------
-    // Tracker files (tiny, checked on every PHP-FPM boot)
+    // Tracker file (single file, no glob)
     // -------------------------------------------------------------------------
 
-    public function trackerPath(string $session_id): string
+    public function trackerPath(): string
     {
-        return $this->tracker_dir.'/'.$session_id.'.json';
+        return $this->base_path.'/tracker.json';
     }
 
     /**
@@ -67,13 +64,13 @@ class PerfStore
     }
 
     /**
-     * Read a tracker file. Returns null when it does not exist.
+     * Read the tracker file. Returns null when it does not exist.
      *
      * @return array<string, mixed>|null
      */
-    public function readTracker(string $session_id): ?array
+    public function readTracker(): ?array
     {
-        $path = $this->trackerPath($session_id);
+        $path = $this->trackerPath();
 
         if (! File::exists($path)) {
             return null;
@@ -89,10 +86,10 @@ class PerfStore
         return is_array($decoded) ? $decoded : null;
     }
 
-    /** Write a tracker to disk atomically. */
-    public function writeTracker(string $session_id, array $tracker): void
+    /** Write the tracker to disk atomically. */
+    public function writeTracker(array $tracker): void
     {
-        $path = $this->trackerPath($session_id);
+        $path = $this->trackerPath();
         $tmp = $path.'.tmp.'.getmypid();
 
         $content = json_encode($tracker, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -102,95 +99,41 @@ class PerfStore
         }
     }
 
-    /** Mark a tracker as completed. */
-    public function finalizeTracker(string $session_id): void
+    /** Remove the tracker file. */
+    public function removeTracker(): void
     {
-        $tracker = $this->readTracker($session_id);
-
-        if (! $tracker) {
-            return;
-        }
-
-        $tracker['status'] = 'completed';
-        $this->writeTracker($session_id, $tracker);
-    }
-
-    /** Remove a tracker file. */
-    public function removeTracker(string $session_id): void
-    {
-        $path = $this->trackerPath($session_id);
+        $path = $this->trackerPath();
 
         if (File::exists($path)) {
             File::delete($path);
         }
     }
 
-    /** Remove stale (completed or expired) tracker files. Called on perf:watch. */
-    public function cleanupStaleTrackers(): int
-    {
-        $removed = 0;
-
-        /** @var list<string> $files */
-        $files = File::glob($this->tracker_dir.'/*.json');
-
-        foreach ($files as $file) {
-            if (str_contains((string) $file, '.tmp.')) {
-                continue;
-            }
-
-            $id = basename((string) $file, '.json');
-            $tracker = $this->readTracker($id);
-
-            if (! $tracker) {
-                continue;
-            }
-
-            if ($tracker['status'] === 'completed' || $this->trackerExpired($tracker)) {
-                if ($this->trackerExpired($tracker) && $tracker['status'] === 'active') {
-                    $this->finalizeTracker($id);
-                }
-                $this->removeTracker($id);
-                $removed++;
-            }
-        }
-
-        return $removed;
-    }
-
     /**
-     * Return any active, non-expired tracker, or null.
-     * Auto-finalizes expired trackers.
+     * Read the active tracker, auto-finalizing and removing if expired.
+     * Single file_exists + file_get_contents — no glob.
      *
      * @return array<string, mixed>|null
      */
     public function activeTracker(): ?array
     {
-        /** @var list<string> $files */
-        $files = File::glob($this->tracker_dir.'/*.json');
+        $tracker = $this->readTracker();
 
-        foreach ($files as $file) {
-            if (str_contains((string) $file, '.tmp.')) {
-                continue;
-            }
-
-            $id = basename((string) $file, '.json');
-            $tracker = $this->readTracker($id);
-
-            if (! $tracker || $tracker['status'] !== 'active') {
-                continue;
-            }
-
-            if ($this->trackerExpired($tracker)) {
-                $this->finalizeTracker($id);
-                $this->removeTracker($id);
-
-                continue;
-            }
-
-            return $tracker;
+        if (! $tracker || ($tracker['status'] ?? null) !== 'active') {
+            return null;
         }
 
-        return null;
+        if ($this->trackerExpired($tracker)) {
+            if (isset($tracker['session_id'])) {
+                $this->finalizeSession($tracker['session_id']);
+            }
+
+            $this->removeTracker();
+
+            return null;
+        }
+
+        return $tracker;
     }
 
     /** Check whether a tracker has expired. */
@@ -354,7 +297,7 @@ class PerfStore
 
     /**
      * Return the most recently modified completed session, or null.
-     * Reads data files only (no tracker glob).
+     * Reads data files only.
      *
      * @return array<string, mixed>|null
      */
@@ -371,6 +314,12 @@ class PerfStore
             }
 
             $id = basename((string) $file, '.json');
+
+            // Skip the tracker file
+            if ($id === 'tracker') {
+                continue;
+            }
+
             $session = $this->readSession($id);
 
             if ($session && ($session['finished_at'] ?? null)) {
@@ -395,7 +344,7 @@ class PerfStore
 
     /**
      * Return the active tracker, or null.
-     * This is the fast path — only reads tiny tracker files.
+     * Single file read — no glob.
      *
      * @return array<string, mixed>|null
      */
@@ -421,7 +370,7 @@ class PerfStore
 
         $completed = collect($files)
             ->filter(fn (string $f) => ! str_contains($f, '.tmp.'))
-            ->filter(fn (string $f) => ! str_starts_with(basename($f), '.'))
+            ->filter(fn (string $f) => basename($f) !== 'tracker.json')
             ->map(function (string $f) {
                 $id = basename($f, '.json');
                 $session = $this->readSession($id);
@@ -441,20 +390,13 @@ class PerfStore
         }
     }
 
-    /** Delete all data files and tracker files. */
+    /** Delete all data files and the tracker. */
     public function clearAll(): void
     {
         /** @var list<string> $files */
         $files = File::glob($this->base_path.'/*.json');
 
         foreach ($files as $file) {
-            File::delete((string) $file);
-        }
-
-        /** @var list<string> $trackers */
-        $trackers = File::glob($this->tracker_dir.'/*.json');
-
-        foreach ($trackers as $file) {
             File::delete((string) $file);
         }
     }

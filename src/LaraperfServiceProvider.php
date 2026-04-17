@@ -24,9 +24,8 @@ use Spatie\LaravelPackageTools\PackageServiceProvider;
  * PHP-FPM interception strategy
  * ─────────────────────────────
  * Under PHP-FPM each web request is a separate process. The tracker file
- * on disk (a tiny JSON in storage/perf/trackers/) acts as the cross-process
- * flag: on every boot this ServiceProvider checks for an active, non-expired
- * tracker. If found, it attaches DB::listen() for the current request.
+ * (storage/perf/tracker.json) acts as the cross-process flag: on every
+ * boot this ServiceProvider reads it to decide whether to attach DB::listen().
  *
  * The data file (storage/perf/<id>.json) holds the actual queries and is
  * only read/written when appending queries or running analysis commands.
@@ -87,8 +86,8 @@ class LaraperfServiceProvider extends PackageServiceProvider
             return;
         }
 
-        // Check the app instance cache first — avoids the glob on every
-        // request when no session is active within the same lifecycle.
+        // Check the app instance cache first — avoids the tracker file
+        // read on every request when no session is active.
         if ($this->app->has('laraperf.active_session')) {
             $cached = $this->app->make('laraperf.active_session');
 
