@@ -89,12 +89,14 @@ class LaraperfServiceProvider extends PackageServiceProvider
         // Check the app instance cache first — avoids the tracker file
         // read on every request when no session is active.
         if ($this->app->has('laraperf.active_session')) {
+            /** @var array<string, mixed>|false $cached */
             $cached = $this->app->make('laraperf.active_session');
 
             if ($cached === false) {
                 return;
             }
 
+            /** @var string $session_id */
             $session_id = $cached['session_id'];
         } else {
             $store = $this->app->make(PerfStore::class);
@@ -107,11 +109,12 @@ class LaraperfServiceProvider extends PackageServiceProvider
                 return;
             }
 
+            /** @var string $session_id */
             $session_id = $tracker['session_id'];
 
             // Prime the PerfStore's in-memory data cache so that
             // appendQuery() never reads from disk for the first query.
-            $data = $store->readSession($session_id);
+            $data = $store->readSession((string) $session_id);
             if ($data) {
                 $store->cacheSession($data);
             }

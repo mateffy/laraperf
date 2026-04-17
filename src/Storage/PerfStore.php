@@ -36,7 +36,9 @@ class PerfStore
 
     public function __construct(?string $base_path = null)
     {
-        $this->base_path = $base_path ?? config('laraperf.storage_path', storage_path('perf'));
+        /** @var string $config_path */
+        $config_path = config('laraperf.storage_path', storage_path('perf'));
+        $this->base_path = $base_path ?? $config_path;
         @mkdir($this->base_path, 0755, true);
     }
 
@@ -81,12 +83,16 @@ class PerfStore
             return null;
         }
 
+        /** @var array<string, mixed>|null $decoded */
         $decoded = json_decode($json, true);
 
         return is_array($decoded) ? $decoded : null;
     }
 
-    /** Write the tracker to disk atomically. */
+    /** Write the tracker to disk atomically.
+     *
+     * @param array<string, mixed> $tracker
+     */
     public function writeTracker(array $tracker): void
     {
         $path = $this->trackerPath();
@@ -125,7 +131,9 @@ class PerfStore
 
         if ($this->trackerExpired($tracker)) {
             if (isset($tracker['session_id'])) {
-                $this->finalizeSession($tracker['session_id']);
+                /** @var string $tracker_session_id */
+                $tracker_session_id = $tracker['session_id'];
+                $this->finalizeSession($tracker_session_id);
             }
 
             $this->removeTracker();
@@ -136,17 +144,22 @@ class PerfStore
         return $tracker;
     }
 
-    /** Check whether a tracker has expired. */
+    /** Check whether a tracker has expired.
+     *
+     * @param array<string, mixed> $tracker
+     */
     public function trackerExpired(array $tracker): bool
     {
         $started_at = $tracker['started_at'] ?? null;
         $duration = $tracker['duration_seconds'] ?? null;
 
-        if (! $started_at || ! $duration) {
+        if (! is_string($started_at) || ! is_int($duration)) {
             return false;
         }
 
-        return time() >= (strtotime($started_at) + $duration);
+        $start_time = strtotime($started_at);
+
+        return is_int($start_time) && time() >= ($start_time + $duration);
     }
 
     // -------------------------------------------------------------------------
@@ -176,6 +189,7 @@ class PerfStore
             return null;
         }
 
+        /** @var array<string, mixed>|null $decoded */
         $decoded = json_decode($json, true);
 
         return is_array($decoded) ? $decoded : null;
@@ -229,8 +243,11 @@ class PerfStore
             return;
         }
 
-        $session['queries'][] = $query;
-        $session['query_count'] = count($session['queries']);
+        /** @var array<int, array<string, mixed>> $queries */
+        $queries = $session['queries'] ?? [];
+        $queries[] = $query;
+        $session['queries'] = $queries;
+        $session['query_count'] = count($queries);
         $session['updated_at'] = now()->toIso8601String();
         $this->writeSession($session_id, $session);
 
@@ -268,11 +285,16 @@ class PerfStore
         }
     }
 
-    /** Prime the in-memory cache with an already-resolved session. */
+    /** Prime the in-memory cache with an already-resolved session.
+     *
+     * @param array<string, mixed> $session
+     */
     public function cacheSession(array $session): void
     {
         $this->sessionCache = $session;
-        $this->sessionCacheId = $session['session_id'] ?? null;
+        /** @var string|null $session_id */
+        $session_id = $session['session_id'] ?? null;
+        $this->sessionCacheId = $session_id !== null ? (string) $session_id : null;
     }
 
     /** Mark a session's data file as completed. */
@@ -284,7 +306,9 @@ class PerfStore
             return;
         }
 
-        $session['finished_at'] = now()->toIso8601String();
+        /** @var string $finished_at */
+        $finished_at = now()->toIso8601String();
+        $session['finished_at'] = $finished_at;
         $this->writeSession($session_id, $session);
 
         $this->invalidateCache($session_id);
@@ -305,8 +329,9 @@ class PerfStore
     {
         $sessions = [];
 
-        /** @var list<string> $files */
+        /** @var array<int, string> $files */
         $files = File::glob($this->base_path.'/*.json');
+        $files = is_array($files) ? $files : [];
 
         foreach ($files as $file) {
             if (str_contains((string) $file, '.tmp.')) {
@@ -332,8 +357,11 @@ class PerfStore
         }
 
         usort($sessions, function (array $a, array $b) {
-            $a_time = $a['finished_at'] ?? $a['updated_at'] ?? $a['started_at'] ?? '';
-            $b_time = $b['finished_at'] ?? $b['updated_at'] ?? $b['started_at'] ?? '';
+            // These are completed sessions, so finished_at is guaranteed to exist
+            /** @var string $a_time */
+            $a_time = $a['finished_at'];
+            /** @var string $b_time */
+            $b_time = $b['finished_at'];
 
             return $b_time <=> $a_time
                 ?: $b['session_id'] <=> $a['session_id'];
@@ -365,8 +393,9 @@ class PerfStore
     /** Keep only the newest MAX_SESSIONS completed data files, delete the rest. */
     protected function pruneOldSessions(): void
     {
-        /** @var list<string> $files */
+        /** @var array<int, string> $files */
         $files = File::glob($this->base_path.'/*.json');
+        $files = is_array($files) ? $files : [];
 
         $completed = collect($files)
             ->filter(fn (string $f) => ! str_contains($f, '.tmp.'))
@@ -393,8 +422,9 @@ class PerfStore
     /** Delete all data files and the tracker. */
     public function clearAll(): void
     {
-        /** @var list<string> $files */
+        /** @var array<int, string> $files */
         $files = File::glob($this->base_path.'/*.json');
+        $files = is_array($files) ? $files : [];
 
         foreach ($files as $file) {
             File::delete((string) $file);

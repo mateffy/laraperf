@@ -34,6 +34,7 @@ class PerfStopCommand extends Command
             return self::SUCCESS;
         }
 
+        /** @var string $session_id */
         $session_id = $tracker['session_id'];
         $this->store->finalizeSession($session_id);
         $this->store->removeTracker();

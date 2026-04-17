@@ -239,7 +239,9 @@ class PerfQueryCommand extends Command
      */
     protected function resolveSession(): ?array
     {
-        $id = (string) ($this->option('session') ?? 'last');
+        /** @var string $id */
+        $id = $this->option('session') ?? 'last';
+        $id = (string) $id;
 
         if ($id === 'last') {
             $data = $this->store->latestSession();
@@ -248,7 +250,9 @@ class PerfQueryCommand extends Command
             if (! $data) {
                 $tracker = $this->store->activeTracker();
                 if ($tracker && isset($tracker['session_id'])) {
-                    $data = $this->store->readSession($tracker['session_id']);
+                    /** @var string $tracker_session_id */
+                    $tracker_session_id = $tracker['session_id'];
+                    $data = $this->store->readSession($tracker_session_id);
                 }
             }
         } else {

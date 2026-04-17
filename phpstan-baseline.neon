@@ -3,7 +3,7 @@ parameters:
 		-
 			message: '#^Called ''env'' outside of the config directory which returns null when the config is cached, use ''config''\.$#'
 			identifier: larastan.noEnvCallsOutsideOfConfig
-			count: 4
+			count: 5
 			path: config/laraperf.php
 
 		-
@@ -216,17 +216,9 @@ parameters:
 			count: 1
 			path: src/Commands/PerfQueryCommand.php
 
-		-
-			message: '#^Parameter \#1 \$value of function count expects array\|Countable, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Commands/PerfWatchCommand.php
 
-		-
-			message: '#^Parameter \#1 \$session_id of method Mateffy\\Laraperf\\QueryLogger\:\:start\(\) expects string, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/LaraperfServiceProvider.php
+
+
 
 		-
 			message: '#^Access to an undefined property PHPUnit\\Framework\\TestCase\:\:\$performanceResult\.$#'
@@ -402,41 +394,7 @@ parameters:
 			count: 1
 			path: src/QueryLogger.php
 
-		-
-			message: '#^Cannot access an offset on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: src/Storage/PerfStore.php
 
-		-
-			message: '#^Cannot cast mixed to int\.$#'
-			identifier: cast.int
-			count: 2
-			path: src/Storage/PerfStore.php
-
-		-
-			message: '#^Cannot cast mixed to string\.$#'
-			identifier: cast.string
-			count: 2
-			path: src/Storage/PerfStore.php
-
-		-
-			message: '#^Method Mateffy\\Laraperf\\Storage\\PerfStore\:\:readSession\(\) should return array\<string, mixed\>\|null but returns array\<mixed, mixed\>\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Storage/PerfStore.php
-
-		-
-			message: '#^Parameter \#1 \$value of function count expects array\|Countable, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Storage/PerfStore.php
-
-		-
-			message: '#^Property Mateffy\\Laraperf\\Storage\\PerfStore\:\:\$base_path \(string\) does not accept mixed\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: src/Storage/PerfStore.php
 
 		-
 			message: '#^PHPDoc tag @return contains generic type Mateffy\\Laraperf\\Testing\\PerformanceResult\<mixed\> but class Mateffy\\Laraperf\\Testing\\PerformanceResult is not generic\.$#'

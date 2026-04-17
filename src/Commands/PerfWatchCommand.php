@@ -52,7 +52,9 @@ class PerfWatchCommand extends Command
     {
         $existing = $this->store->activeTracker();
         if ($existing) {
-            $this->warn("Session {$existing['session_id']} is already active.");
+            /** @var string $existing_session_id */
+            $existing_session_id = $existing['session_id'];
+            $this->warn("Session {$existing_session_id} is already active.");
             $this->line('Run `php artisan perf:stop` to end it first.');
 
             return self::FAILURE;
@@ -123,7 +125,9 @@ class PerfWatchCommand extends Command
             }
 
             $session = $this->store->readSession($session_id);
-            $count = count($session['queries'] ?? []);
+            /** @var array<int, array<string, mixed>> $queries */
+            $queries = $session['queries'] ?? [];
+            $count = count($queries);
 
             if ($count !== $last_count) {
                 $this->line("  Queries: {$count}");
@@ -136,7 +140,9 @@ class PerfWatchCommand extends Command
         $finalize();
 
         $session = $this->store->readSession($session_id);
-        $count = count($session['queries'] ?? []);
+        /** @var array<int, array<string, mixed>> $queries */
+        $queries = $session['queries'] ?? [];
+        $count = count($queries);
         $this->info("Done. Captured {$count} queries → session={$session_id}");
         $this->line("Run: php artisan perf:query --session={$session_id}");
 
