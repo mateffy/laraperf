@@ -7,9 +7,10 @@ use Mateffy\Laraperf\Commands\PerfClearCommand;
 use Mateffy\Laraperf\Commands\PerfExplainCommand;
 use Mateffy\Laraperf\Commands\PerfQueryCommand;
 
-it('perf:clear deletes all sessions', function () {
+it('perf:clear deletes all completed sessions', function () {
     $store = $this->store;
     $store->writeSession('to-delete', $store->emptySession('to-delete'));
+    $store->finalizeSession('to-delete');
 
     expect($store->sessionExists('to-delete'))->toBeTrue();
 
@@ -19,22 +20,20 @@ it('perf:clear deletes all sessions', function () {
     expect($store->readSession('to-delete'))->toBeNull();
 });
 
-it('perf:clear refuses when watchers are active', function () {
+it('perf:clear refuses when an active session exists', function () {
     $store = $this->store;
-    $store->writeSession('active-session', $store->emptySession('active-session'));
-    $store->writeWatcherPid(99999, 'active-session'); // fake PID
+    $store->writeTracker('active-session', $store->emptyTracker('active-session'));
 
     $this->artisan(PerfClearCommand::class, ['--force' => true])
         ->assertFailed();
 
-    $store->removeWatcherPid(99999);
+    $store->removeTracker('active-session');
 });
 
 it('perf:query returns summary for completed session', function () {
     $store = $this->store;
 
     $session = $store->emptySession('query-test-session');
-    $session['status'] = 'completed';
     $session['finished_at'] = now()->toIso8601String();
     $session['queries'] = [
         ['sql' => 'select * from "users" where "id" = ?', 'raw_sql' => 'select * from "users" where "id" = 1', 'time_ms' => 5.0, 'connection' => 'testing', 'driver' => 'sqlite', 'operation' => 'SELECT', 'table' => 'users', 'hash' => 'abc123', 'batch_id' => 'b1', 'source' => [], 'captured_at' => now()->toIso8601String()],
@@ -42,6 +41,11 @@ it('perf:query returns summary for completed session', function () {
     ];
     $session['query_count'] = 2;
     $store->writeSession('query-test-session', $session);
+
+    // Write tracker as completed so resolveSession can merge status
+    $tracker = $store->emptyTracker('query-test-session', 300);
+    $tracker['status'] = 'completed';
+    $store->writeTracker('query-test-session', $tracker);
 
     $this->artisan(PerfQueryCommand::class, ['--session' => 'query-test-session', '--summary' => true])
         ->assertSuccessful();
@@ -52,7 +56,6 @@ it('perf:query returns N+1 candidates', function () {
     $normalizer = new QueryNormalizer;
 
     $session = $store->emptySession('n1-test-session');
-    $session['status'] = 'completed';
     $session['finished_at'] = now()->toIso8601String();
 
     for ($i = 0; $i < 5; $i++) {
@@ -82,7 +85,6 @@ it('perf:query returns combined output by default', function () {
     $normalizer = new QueryNormalizer;
 
     $session = $store->emptySession('combined-test-session');
-    $session['status'] = 'completed';
     $session['finished_at'] = now()->toIso8601String();
 
     for ($i = 0; $i < 5; $i++) {
@@ -111,7 +113,6 @@ it('perf:query combines --summary --slow flags', function () {
     $store = $this->store;
 
     $session = $store->emptySession('multi-flag-session');
-    $session['status'] = 'completed';
     $session['finished_at'] = now()->toIso8601String();
     $session['queries'] = [
         ['sql' => 'select * from "users" where "id" = ?', 'raw_sql' => 'select * from "users" where "id" = 1', 'time_ms' => 200.0, 'connection' => 'testing', 'driver' => 'sqlite', 'operation' => 'SELECT', 'table' => 'users', 'hash' => 'abc123', 'batch_id' => 'b1', 'source' => [], 'captured_at' => now()->toIso8601String()],
@@ -149,7 +150,6 @@ it('perf:explain looks up hash from last session', function () {
     $hash = $normalizer->hash('select * from "hash_test"');
 
     $session = $store->emptySession('hash-session');
-    $session['status'] = 'completed';
     $session['finished_at'] = now()->toIso8601String();
     $session['queries'] = [
         ['sql' => 'select * from "hash_test"', 'raw_sql' => 'select * from "hash_test"', 'time_ms' => 1.0, 'connection' => 'testing', 'hash' => $hash, 'batch_id' => 'b1', 'source' => [], 'captured_at' => now()->toIso8601String()],
@@ -170,7 +170,6 @@ it('perf:explain fails with unknown hash', function () {
     $store = $this->store;
 
     $session = $store->emptySession('empty-hash-session');
-    $session['status'] = 'completed';
     $session['finished_at'] = now()->toIso8601String();
     $session['queries'] = [];
     $session['query_count'] = 0;

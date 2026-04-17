@@ -5,6 +5,22 @@ declare(strict_types=1);
 return [
     /*
     |--------------------------------------------------------------------------
+    | Enable / disable runtime interception
+    |--------------------------------------------------------------------------
+    | When false, the ServiceProvider skips the glob check entirely — zero
+    | overhead on every request. When true (or null), the normal interception
+    | logic runs.
+    |
+    | In production, this defaults to false for safety. You must explicitly
+    | set PERF_ENABLE=true in .env to use laraperf in production.
+    | In local and testing environments, it defaults to true.
+    |
+    | Set PERF_ENABLE=false in your .env to fully disable all runtime behavior.
+    */
+    'enabled' => env('PERF_ENABLE', null),
+
+    /*
+    |--------------------------------------------------------------------------
     | Default DB connection name
     |--------------------------------------------------------------------------
     | The Laravel connection name used by perf:explain and perf:query when

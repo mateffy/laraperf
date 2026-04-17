@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 use Mateffy\Laraperf\Storage\PerfStore;
 
 /**
- * Wipe all stored perf sessions from storage/perf/.
+ * Wipe all stored perf sessions and trackers from storage/perf/.
  */
 class PerfClearCommand extends Command
 {
@@ -30,11 +30,10 @@ class PerfClearCommand extends Command
             return self::SUCCESS;
         }
 
-        // Stop any running watchers first
-        $watchers = $this->store->allWatcherPids();
+        $active = $this->store->activeTracker();
 
-        if (! empty($watchers)) {
-            $this->warn('Active watchers detected — stop them with `perf:stop` before clearing.');
+        if ($active) {
+            $this->warn('Active session detected — stop it with `perf:stop` before clearing.');
 
             return self::FAILURE;
         }

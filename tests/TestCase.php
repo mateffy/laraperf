@@ -23,12 +23,6 @@ class TestCase extends Orchestra
         parent::setUp();
 
         $this->store = app(PerfStore::class);
-
-        // Clean up before each test
-        if (File::isDirectory($this->perf_path)) {
-            File::deleteDirectory($this->perf_path);
-        }
-        File::ensureDirectoryExists($this->perf_path);
     }
 
     protected function tearDown(): void

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Artisan;
 use Mateffy\Laraperf\Analysis\QueryNormalizer;
+use Mateffy\Laraperf\LaraperfServiceProvider;
 use Mateffy\Laraperf\QueryLogger;
 use Mateffy\Laraperf\Storage\PerfStore;
 
@@ -19,20 +20,19 @@ it('registers all perf commands', function () {
 
 it('does not attach DB::listen when no active session', function () {
     $store = app(PerfStore::class);
-    expect($store->activeSession())->toBeNull();
+    expect($store->activeTracker())->toBeNull();
 });
 
-it('detects an active session from disk', function () {
+it('detects an active tracker from disk', function () {
     $store = app(PerfStore::class);
-    $store->writeSession('auto-attach-test', $store->emptySession('auto-attach-test'));
+    $store->writeTracker('auto-attach-test', $store->emptyTracker('auto-attach-test'));
 
-    // Verify that an active session is found on disk
-    $active = $store->activeSession();
+    $active = $store->activeTracker();
     expect($active)->not->toBeNull()
         ->and($active['session_id'])->toBe('auto-attach-test');
 
-    // Clean up
-    $store->finalizeSession('auto-attach-test');
+    $store->finalizeTracker('auto-attach-test');
+    $store->removeTracker('auto-attach-test');
 });
 
 it('query logger starts and stops correctly', function () {
@@ -55,4 +55,31 @@ it('query logger starts and stops correctly', function () {
 it('merges config from the package', function () {
     expect(config()->has('laraperf'))->toBeTrue();
     expect(config('laraperf.connection'))->not->toBeNull();
+});
+
+it('is enabled by default in testing environment', function () {
+    config(['laraperf.enabled' => null]);
+    $provider = new LaraperfServiceProvider(app());
+    $method = new ReflectionMethod($provider, 'isEnabled');
+    $method->setAccessible(true);
+
+    expect($method->invoke($provider))->toBeTrue();
+});
+
+it('disables runtime interception when PERF_ENABLE is false', function () {
+    config(['laraperf.enabled' => false]);
+    $provider = new LaraperfServiceProvider(app());
+    $method = new ReflectionMethod($provider, 'isEnabled');
+    $method->setAccessible(true);
+
+    expect($method->invoke($provider))->toBeFalse();
+});
+
+it('forces enable when PERF_ENABLE is true regardless of environment', function () {
+    config(['laraperf.enabled' => true]);
+    $provider = new LaraperfServiceProvider(app());
+    $method = new ReflectionMethod($provider, 'isEnabled');
+    $method->setAccessible(true);
+
+    expect($method->invoke($provider))->toBeTrue();
 });

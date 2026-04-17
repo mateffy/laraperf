@@ -232,6 +232,9 @@ class PerfQueryCommand extends Command
     // =========================================================================
 
     /**
+     * Resolve the session data, merging tracker metadata (tag, status)
+     * into the data file contents.
+     *
      * @return array<string, mixed>|null
      */
     protected function resolveSession(): ?array
@@ -239,10 +242,26 @@ class PerfQueryCommand extends Command
         $id = (string) ($this->option('session') ?? 'last');
 
         if ($id === 'last') {
-            return $this->store->latestSession();
+            $data = $this->store->latestSession();
+        } else {
+            $data = $this->store->readSession($id);
         }
 
-        return $this->store->readSession($id);
+        if (! $data) {
+            return null;
+        }
+
+        // Merge tracker metadata (tag, status) into the data
+        $tracker = $this->store->readTracker($data['session_id']);
+        if ($tracker) {
+            $data['tag'] = $data['tag'] ?? $tracker['tag'] ?? null;
+            $data['status'] = $tracker['status'] ?? ($data['finished_at'] ? 'completed' : 'active');
+        } else {
+            // No tracker means the session was stopped or expired
+            $data['status'] = $data['status'] ?? ($data['finished_at'] ? 'completed' : 'active');
+        }
+
+        return $data;
     }
 
     // =========================================================================
